@@ -9,6 +9,10 @@ library(tidyverse)
 library(interactions)
 library(gam)
 
+# Create output directories if they do not exist
+dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
+dir.create("output/tables", recursive = TRUE, showWarnings = FALSE)
+
 # 2. Data Import & Inspection --------------------------------------------------
 credit <- read.table(file = "data/credit.txt", header = TRUE, sep = "")
 
@@ -80,12 +84,28 @@ cat_plot(fit_beruf, pred = beruf, data = credit_agg, outcome.scale = "link", geo
 # Functional form assessment via GAMs: An estimated degree of freedom (edf) 
 # close to 1 supports a linear specification, whereas an edf significantly > 1 
 # provides an indication of potential non-linearity (though not a formal proof).
-gam_alter <- gam(cbind(kredit, no_kredit) ~ s(alter), data = credit_agg, family = binomial(link = "logit"))
+gam_alter <- gam(
+  cbind(kredit, no_kredit) ~ s(alter),
+  data = credit_agg,
+  family = binomial(link = "logit")
+)
+
+png("output/figures/gam_alter.png", width = 1000, height = 800, res = 150)
 plot(gam_alter, se = TRUE, main = "Smooth term for alter")
+dev.off()
+
 summary(gam_alter)
 
-gam_laufzeit <- gam(cbind(kredit, no_kredit) ~ s(laufzeit), data = credit_agg, family = binomial(link = "logit"))
+gam_laufzeit <- gam(
+  cbind(kredit, no_kredit) ~ s(laufzeit),
+  data = credit_agg,
+  family = binomial(link = "logit")
+)
+
+png("output/figures/gam_laufzeit.png", width = 1000, height = 800, res = 150)
 plot(gam_laufzeit, se = TRUE, main = "Smooth term for laufzeit")
+dev.off()
+
 summary(gam_laufzeit)
 
 # Clean environment before formal selection
@@ -127,6 +147,10 @@ model_stepwise <- step(
 
 # Extract the final model selected by the step function
 model_main <- model_stepwise
+saveRDS(
+  model_main,
+  "output/model_main.rds"
+)
 
 # 7. Final model ---------------------------------------------------------------
 
@@ -136,7 +160,20 @@ anova(model_baseline, model_main, test = "Chisq") # Do added variables improve f
 anova(model_main, model_full, test = "Chisq")     # Does the full model improve fit over the selected one?
 
 # Compare model complexity using AIC
-AIC(model_null, model_baseline, model_main, model_full)
+aic_table <- AIC(
+  model_null,
+  model_baseline,
+  model_main,
+  model_full
+)
+
+print(aic_table)
+
+write.csv(
+  aic_table,
+  "output/tables/model_comparison_aic.csv",
+  row.names = FALSE
+)
 # Forward selection drops 'beruf', as its inclusion does not improve model fit 
 # enough to justify the added complexity (AIC penalty).
 
@@ -152,6 +189,11 @@ or_table <- data.frame(
   conf_high = exp(confint(model_main)[, 2])
 )
 print(or_table)
+write.csv(
+  or_table,
+  "output/tables/odds_ratios.csv",
+  row.names = FALSE
+)
 # Odds ratios > 1 indicate higher odds of kredit = 1,
 # whereas odds ratios < 1 indicate lower odds of kredit = 1.
 # For factor variables, odds ratios are interpreted relative
@@ -165,7 +207,10 @@ partial_laufzeit <- data.frame(
   partial_residual = partial_residuals[, "laufzeit"]
 )
 
-ggplot(partial_laufzeit, aes(x = laufzeit, y = partial_residual)) +
+p_laufzeit <- ggplot(
+  partial_laufzeit,
+  aes(x = laufzeit, y = partial_residual)
+) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "loess", se = TRUE, color = "blue") +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
@@ -175,6 +220,16 @@ ggplot(partial_laufzeit, aes(x = laufzeit, y = partial_residual)) +
     x = "Duration in Months (laufzeit)",
     y = "Partial Residual"
   )
+
+print(p_laufzeit)
+
+ggsave(
+  "output/figures/partial_residual_laufzeit.png",
+  plot = p_laufzeit,
+  width = 8,
+  height = 6,
+  dpi = 300
+)
 # The loess smoothing line approximately follows a straight path, supporting 
 # a linear specification for the covariate 'laufzeit' in the multivariate model.
 
