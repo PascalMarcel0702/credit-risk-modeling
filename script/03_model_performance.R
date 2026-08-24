@@ -73,15 +73,19 @@ yhat_train <- ifelse(phat_train >= 0.5, 1, 0)
 train_error <- 1 - (sum(diag(table(Predicted = yhat_train, Actual = data_train$kredit))) / nrow(data_train))
 train_brier <- mean((phat_train - data_train$kredit)^2)
 
+# NEU: Berechne den Train AUC
+roc_obj_train <- roc(data_train$kredit, phat_train, quiet = TRUE)
+auc_value_train <- auc(roc_obj_train)
+
 cat("\n--- Out-of-Sample vs In-Sample ---\n")
-cat("AUC Value (Test):     ", round(auc_value, 4), "\n")
-cat("Error Rate (Test):    ", round(test_error * 100, 2), "% | (Train):", round(train_error * 100, 2), "%\n")
-cat("MSE (Test):   ", round(test_brier, 4), "   | (Train):", round(train_brier, 4), "\n")
+cat("AUC Value (Test):   ", round(auc_value, 4), "   | (Train):", round(auc_value_train, 4), "\n")
+cat("Error Rate (Test):  ", round(test_error * 100, 2), "% | (Train):", round(train_error * 100, 2), "%\n")
+cat("Brier Score (Test): ", round(test_brier, 4), "   | (Train):", round(train_brier, 4), "\n")
 
 # 5. Export Metrics ------------------------------------------------------------
 performance_metrics <- data.frame(
-  Metric = c("AUC", "Test Accuracy", "Test Error Rate", "Train Error Rate", "Test MSE", "Train MSE"),
-  Value = c(auc_value, test_accuracy, test_error, train_error, test_brier, train_brier)
+  Metric = c("Test AUC", "Train AUC", "Test Accuracy", "Test Error Rate", "Train Error Rate", "Test Brier Score", "Train Brier Score"),
+  Value = c(auc_value, auc_value_train, test_accuracy, test_error, train_error, test_brier, train_brier)
 )
 
 write.csv(performance_metrics, "output/performance/classification_metrics.csv", row.names = FALSE)
