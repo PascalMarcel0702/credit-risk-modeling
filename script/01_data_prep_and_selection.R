@@ -64,6 +64,9 @@ n_aggregated
 stopifnot(sum(credit_agg$kredit) + sum(credit_agg$no_kredit) == nrow(credit))
 stopifnot(all(credit_agg$kredit >= 0), all(credit_agg$no_kredit >= 0))
 
+# Export aggregated dataset for subsequent diagnostic steps
+saveRDS(credit_agg, "output/credit_agg.rds")
+
 # 5. Exploratory Data Analysis (EDA) -------------------------------------------
 
 # 5.1 Categorical variables
@@ -180,7 +183,7 @@ write.csv(
 # 7.1 Summary
 summary(model_main)
 
-# 7.2 Coefficients, 7.3 Odds ratios, and 7.4 Confidence intervals
+# 7.2 Model Parameters (Coefficients, Odds Ratios, Confidence Intervals)
 or_table <- data.frame(
   term = names(coef(model_main)),
   estimate = coef(model_main),
@@ -198,56 +201,3 @@ write.csv(
 # whereas odds ratios < 1 indicate lower odds of kredit = 1.
 # For factor variables, odds ratios are interpreted relative
 # to the respective reference category documented above.
-
-# Functional Form Check (Partial Residuals for 'laufzeit')
-partial_residuals <- residuals(model_main, type = "partial")
-
-partial_laufzeit <- data.frame(
-  laufzeit = credit_agg$laufzeit,
-  partial_residual = partial_residuals[, "laufzeit"]
-)
-
-p_laufzeit <- ggplot(
-  partial_laufzeit,
-  aes(x = laufzeit, y = partial_residual)
-) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "loess", se = TRUE, color = "blue") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-  theme_light() +
-  labs(
-    title = "Partial Residual Plot: laufzeit",
-    x = "Duration in Months (laufzeit)",
-    y = "Partial Residual"
-  )
-
-print(p_laufzeit)
-
-ggsave(
-  "output/figures/partial_residual_laufzeit.png",
-  plot = p_laufzeit,
-  width = 8,
-  height = 6,
-  dpi = 300
-)
-# The loess smoothing line approximately follows a straight path, supporting 
-# a linear specification for the covariate 'laufzeit' in the multivariate model.
-
-# 7.5 Goodness-of-Fit Assessment
-# Approximate Chi-squared goodness-of-fit test based on residual deviance
-dev <- deviance(model_main)
-df_res <- df.residual(model_main)
-
-dev
-df_res
-
-# Calculate critical Chi-squared value and p-value
-crit_val <- qchisq(0.95, df = df_res)
-gof_p <- pchisq(dev, df = df_res, lower.tail = FALSE)
-
-cat("Residual Deviance:", dev, "\nDegrees of Freedom:", df_res, 
-    "\nCritical Chi-sq Value:", crit_val, "\nGoodness-of-Fit p-value:", gof_p, "\n")
-
-# A large p-value provides no evidence of lack of fit based on
-# the residual deviance, but it does not prove that the model is
-# correctly specified.
