@@ -155,7 +155,7 @@ AUC measures how well the model ranks risky borrowers above non-risky borrowers.
 **Decision:** The model provides useful ranking information for risk differentiation.
 
 ### Probabilistic Accuracy
-**Method:** Brier Score.
+**Method:** Brier Score / MSE.
 
 $$\text{BS} = \frac{1}{N} \sum_{i=1}^{N} (\hat p_i-y_i)^2$$
 
@@ -195,12 +195,23 @@ Natural extensions include nested model selection, probabilistic accuracy analys
 ├── data/
 │   └── credit.txt                              (Raw dataset)
 ├── output/
-│   ├── figures/                                (Diagnostic and EDA plots)
+│   ├── figures/                                
+│   │   ├── cooks_distance.png                  (Cook's distance analysis)
+│   │   ├── gam_alter.png                       (GAM smooth term for age)
+│   │   ├── gam_laufzeit.png                    (GAM smooth term for duration)
+│   │   ├── leverage_plot.png                   (Leverage analysis)
+│   │   ├── partial_residual_laufzeit.png       (Linearity check for duration)
+│   │   ├── residuals_adjusted.png              (Adjusted Pearson residuals)
+│   │   ├── residuals_deviance.png              (Deviance residuals)
+│   │   └── residuals_pearson.png               (Pearson residuals)
 │   ├── performance/                        
 │   │   ├── classification_metrics.csv          (Test vs. Train risk metrics)
 │   │   ├── confusion_matrix.csv                (Absolute prediction counts)
 │   │   └── roc_curve.png                       (High-res ROC visualization)
-│   ├── tables/                                 (Odds ratios and GoF tables)
+│   ├── tables/                                 
+│   │   ├── goodness_of_fit.csv                 (Residual deviance GoF test)
+│   │   ├── model_comparison_aic.csv            (AIC stepwise selection steps)
+│   │   └── odds_ratios.csv                     (Model coefficients and ORs)
 │   ├── credit_agg.rds                          (Saved aggregated dataset)
 │   └── model_main.rds                          (Saved final GLM object)
 ├── script/
