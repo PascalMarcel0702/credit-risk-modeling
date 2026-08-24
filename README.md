@@ -132,7 +132,7 @@ Stratification approximately preserves the class distribution across the trainin
 | Metric | Train | Test |
 |---|---:|---:|
 | AUC | 0.753 | 0.811 |
-| Brier Score | 0.175 | 0.160 |
+| MSE| 0.175 | 0.160 |
 | Error Rate | 25.6% | 25.3% |
 
 The similarity between training and test performance provides no pronounced evidence of overfitting on this hold-out sample.
