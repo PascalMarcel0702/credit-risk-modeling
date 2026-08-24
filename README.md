@@ -1,6 +1,28 @@
 # Credit Risk Modeling and Classification
 
-This project develops an interpretable logistic regression model for credit default prediction. The model estimates borrower-specific probabilities of default rather than relying solely on binary classification. The workflow combines binomial GLMs, functional-form assessment, likelihood-based model selection, residual and influence diagnostics, and out-of-sample validation.
+This project develops an interpretable logistic regression model for credit risk prediction. The model estimates borrower-specific probabilities of repayment and thereby supports credit-risk differentiation rather than relying solely on binary classification. The workflow combines binomial GLMs, functional-form assessment, likelihood-based model selection, residual and influence diagnostics, and out-of-sample validation.
+
+### Data & Variable Definitions
+
+The dataset contains 1,000 credit observations and is documented by the Ludwig-Maximilians-Universität München. The original variable definitions and category descriptions are provided in the [dataset documentation](https://data.ub.uni-muenchen.de/23/1/DETAILS.html).
+
+The model uses the following predictors:
+
+| Variable | Description | Type |
+|---|---|---|
+| `laufzeit` | Credit duration in months | Numeric |
+| `moral` | Previous payment behavior | Categorical |
+| `laufkont` | Existing current account status | Categorical |
+| `alter` | Borrower age in years | Numeric |
+| `beruf` | Occupation | Categorical |
+
+The target variable is:
+
+| Variable | Description | Coding |
+|---|---|---|
+| `kredit` | Credit repayment status | `1` = correctly repaid, `0` = not correctly repaid |
+
+Accordingly, `kredit = 1` represents the non-default class, while `kredit = 0` represents the default class throughout this project.
 
 ## Key Results
 
@@ -8,8 +30,8 @@ This project develops an interpretable logistic regression model for credit defa
 |---|---|
 | Observations | 1,000 borrowers |
 | Aggregated profiles | 912 |
-| Selected predictors | laufzeit, moral, laufkont, alter |
-| Removed predictor | beruf |
+| Selected predictors | `laufzeit`, `moral`, `laufkont`, `alter` |
+| Removed predictor | `beruf` |
 | Test split | 70/30 stratified hold-out |
 | Test AUC | 0.811 |
 | Test MSE | 0.160 |
@@ -29,10 +51,10 @@ $$Y_j \sim \text{Binomial}(n_j,\pi_j)$$
 
 where $n_j$ is the number of borrowers in profile $j$, $Y_j$ is the observed number of defaults, and $\pi_j$ is the profile-specific probability of default.
 
-The aggregation preserves the binomial likelihood while enabling grouped residual and goodness-of-fit diagnostics.
+The aggregation preserves the binomial likelihood and provides the grouped structure used for residual and goodness-of-fit diagnostics.
 
 ### Mathematical Foundation
-The linear predictor $\eta_i = \mathbf{x}_i^\top\boldsymbol{\beta}$ is mapped to the default probability via the inverse logit function:
+The linear predictor $\eta_i = \mathbf{x}_i^\top\boldsymbol{\beta}$ is mapped to the repayment probability via the inverse logit function:
 
 $$\pi_i = \frac{1}{1+\exp(-\eta_i)}$$
 
@@ -40,6 +62,7 @@ Equivalently, the model estimates log-odds:
 
 $$\log\left(\frac{\pi_i}{1-\pi_i}\right) = \mathbf{x}_i^\top\boldsymbol{\beta}$$
 
+Here, $\pi_i = P(kredit_i = 1 \mid \mathbf{x}_i)$ denotes the conditional probability of repayment.
 Coefficients are estimated by maximum likelihood:
 
 $$\ell(\boldsymbol{\beta}) = \sum_{i=1}^{n} \left[ y_i\log(\pi_i) + (1-y_i)\log(1-\pi_i) \right]$$
@@ -144,13 +167,13 @@ The similarity between training and test performance provides no pronounced evid
 
 **Method:** ROC analysis and Area Under the Curve (AUC).
 
-$$\text{AUC} = P(\hat p_{\text{default}} > \hat p_{\text{non-default}})$$
+$$\text{AUC} = P(\hat p_{\text{repayment}} > \hat p_{\text{default}})$$
 
-AUC measures how well the model ranks risky borrowers above non-risky borrowers.
+AUC measures how well the model distinguishes borrowers who repay their credit from borrowers who do not.
 
 **Evidence:** The ROC curve lies above the random-classification benchmark, with an AUC of 0.811.
 
-**Interpretation:** The model demonstrates good discrimination between default and non-default observations.
+**Interpretation:** The model demonstrates good discrimination between repayment and default outcomes.
 
 **Decision:** The model provides useful ranking information for risk differentiation.
 
@@ -166,14 +189,14 @@ Odds ratios are defined as:
 
 $$\text{OR}_j = e^{\beta_j}$$
 
-An odds ratio above 1 indicates higher odds of default for a one-unit increase in the predictor, holding all other variables constant. For categorical variables, the odds ratio is interpreted relative to the reference category.
+An odds ratio above 1 indicates higher odds of repayment for a one-unit increase in the predictor, holding all other variables constant. For categorical variables, the odds ratio is interpreted relative to the reference category.
 
 **Key Predictor Impacts:**
-*   **Laufzeit:** An odds ratio of 0.966 means that a one-month increase in duration multiplies the odds of default by 0.966, holding all other predictors constant.
-*   **Moral:** Category 4 has an odds ratio of 4.601 relative to the reference category, indicating substantially higher odds of default compared to the baseline moral category.
-*   **Alter:** An odds ratio of 1.013 means that a one-year increase in age multiplies the odds of default by 1.013, holding all other predictors constant.
+*   **Laufzeit:** An odds ratio of 0.966 means that a one-month increase in duration multiplies the odds of repayment by 0.966, holding all other predictors constant.
+*   **Moral:** Category 4 has an odds ratio of 4.601 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline moral category.
+*   **Alter:** An odds ratio of 1.013 means that a one-year increase in age multiplies the odds of repayment by 1.013, holding all other predictors constant.
 
-The displayed probability threshold represents a statistically optimized operating point based on the ROC criterion ($J = \text{Sensitivity} + \text{Specificity} - 1$). In a production credit-risk environment, the final decision threshold should additionally reflect asymmetric misclassification costs, risk appetite, and regulatory constraints.
+The displayed probability threshold represents an operating point selected according to the ROC criterion ($J = \text{Sensitivity} + \text{Specificity} - 1$). In a production credit-risk setting, the final decision threshold would additionally depend on asymmetric misclassification costs, risk appetite, and regulatory requirements.
 
 ---
 
@@ -184,7 +207,7 @@ The displayed probability threshold represents a statistically optimized operati
 *   No temporal validation.
 *   No explicit cost-sensitive threshold optimization.
 
-Natural extensions include nested model selection, probabilistic accuracy analysis, interaction effects, nonlinear terms, and cost-sensitive decision thresholds.
+Natural extensions include leakage-resistant model selection, repeated cross-validation, calibration analysis, interaction effects, nonlinear terms, and cost-sensitive decision thresholds.
 
 ---
 
