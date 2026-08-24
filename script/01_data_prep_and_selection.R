@@ -8,6 +8,7 @@
 library(tidyverse)
 library(interactions)
 library(gam)
+library(rsample)
 
 # Create output directories if they do not exist
 dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
@@ -46,25 +47,36 @@ levels(credit_candidate$moral)
 levels(credit_candidate$laufkont)
 levels(credit_candidate$beruf)
 
-# 4. Data Aggregation ----------------------------------------------------------
-# Aggregate data to analyze empirical logits and perform goodness-of-fit tests
+# 4. Train-Test Split & Data Aggregation ---------------------------------------
+set.seed(234)
+
+# 4.1 Split data to prevent data leakage during model selection
+data_split <- initial_split(credit_candidate, prop = 0.7, strata = kredit)
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+# Export raw splits for out-of-sample evaluation in Script 3
+saveRDS(data_train, "output/data_train.rds")
+saveRDS(data_test, "output/data_test.rds")
+
+# 4.2 Aggregate only the training data to perform goodness-of-fit tests and to analyze empirical logits
 credit_agg <- aggregate(
   cbind(kredit, no_kredit) ~ laufzeit + moral + laufkont + alter + beruf, 
-  data = credit_candidate,
+  data = data_train,
   FUN = sum
 )
 
-# Verify aggregation effect (1000 individual obs. -> 229 unique combinations)
-n_original <- nrow(credit)
-n_aggregated <- nrow(credit_agg)
-n_original
-n_aggregated
+# Verify aggregation effect on training data
+n_original_train <- nrow(data_train)
+n_aggregated_train <- nrow(credit_agg)
+n_original_train
+n_aggregated_train
 
-# Integrity check: Ensure no observations were lost during aggregation
-stopifnot(sum(credit_agg$kredit) + sum(credit_agg$no_kredit) == nrow(credit))
+# Integrity check: Ensure no observations were lost during aggregation of the training set
+stopifnot(sum(credit_agg$kredit) + sum(credit_agg$no_kredit) == nrow(data_train))
 stopifnot(all(credit_agg$kredit >= 0), all(credit_agg$no_kredit >= 0))
 
-# Export aggregated dataset for subsequent diagnostic steps
+# Export aggregated training dataset for subsequent diagnostic steps
 saveRDS(credit_agg, "output/credit_agg.rds")
 
 # 5. Exploratory Data Analysis (EDA) -------------------------------------------
