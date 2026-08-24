@@ -93,7 +93,7 @@ gam_alter <- gam(
   family = binomial(link = "logit")
 )
 
-png("output/figures/gam_alter.png", width = 1000, height = 800, res = 150)
+png("output/figures/gam_alter.png", width = 1000, height = 800, res = 300)
 plot(gam_alter, se = TRUE, main = "Smooth term for alter")
 dev.off()
 
