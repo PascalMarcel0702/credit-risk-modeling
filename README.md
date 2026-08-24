@@ -29,10 +29,9 @@ Accordingly, `kredit = 1` represents the non-default class, while `kredit = 0` r
 | Aspect | Result |
 |---|---|
 | Observations | 1,000 borrowers |
-| Aggregated profiles | 654 |
+| Training profiles (aggregated)| 700 (654) |
 | Selected predictors | `laufzeit`, `moral`, `laufkont` |
 | Removed predictors | `beruf`, `alter` |
-| Test split | 70/30 stratified hold-out |
 | Test AUC | 0.809 |
 | Test Brier Score | 0.161 |
 | Test Error Rate | 25.9% |
