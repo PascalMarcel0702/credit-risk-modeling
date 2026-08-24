@@ -191,8 +191,9 @@ $$\text{OR}_j = e^{\beta_j}$$
 An odds ratio above 1 indicates higher odds of repayment for a one-unit increase in the predictor, holding all other variables constant. For categorical variables, the odds ratio is interpreted relative to the reference category.
 
 **Key Predictor Impacts:**
-*   **Laufzeit:** An odds ratio of 0.966 means that a one-month increase in duration multiplies the odds of repayment by 0.966, holding all other predictors constant.
-*   **Moral:** Category 4 has an odds ratio of 4.601 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline moral category.
+*   **Laufzeit:** An odds ratio of 0.970 means that a one-month increase in duration multiplies the odds of repayment by 0.970, holding all other predictors constant.
+*   **Moral:** The highest factor level (Category 4) has an odds ratio of 5.607 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline moral category.
+*   **Laufkont:** The highest factor level (Category 4) has an odds ratio of 5.510 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline current account category.
 
 The displayed probability threshold represents an operating point selected according to the ROC criterion ($J = \text{Sensitivity} + \text{Specificity} - 1$). In a production credit-risk setting, the final decision threshold would additionally depend on asymmetric misclassification costs, risk appetite, and regulatory requirements.
 
