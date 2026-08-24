@@ -29,13 +29,13 @@ Accordingly, `kredit = 1` represents the non-default class, while `kredit = 0` r
 | Aspect | Result |
 |---|---|
 | Observations | 1,000 borrowers |
-| Aggregated profiles | 912 |
-| Selected predictors | `laufzeit`, `moral`, `laufkont`, `alter` |
-| Removed predictor | `beruf` |
+| Aggregated profiles | 654 |
+| Selected predictors | `laufzeit`, `moral`, `laufkont` |
+| Removed predictors | `beruf`, `alter` |
 | Test split | 70/30 stratified hold-out |
-| Test AUC | 0.811 |
-| Test Brier Score | 0.160 |
-| Test Error Rate | 25.3% |
+| Test AUC | 0.809 |
+| Test Brier Score | 0.161 |
+| Test Error Rate | 25.9% |
 
 ---
 
@@ -49,7 +49,7 @@ Identical covariate profiles are aggregated into grouped binomial observations:
 
 $$Y_j \sim \text{Binomial}(n_j,\pi_j)$$
 
-where $n_j$ is the number of borrowers in profile $j$, $Y_j$ is the observed number of defaults, and $\pi_j$ is the profile-specific probability of default.
+where $n_j$ is the number of borrowers in profile $j$, $Y_j$ is the observed number of repayments, and $\pi_j$ is the profile-specific probability of repayment.
 
 The aggregation preserves the binomial likelihood and provides the grouped structure used for residual and goodness-of-fit diagnostics.
 
@@ -74,11 +74,11 @@ $$\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k$$
 
 The selected model is:
 
-$$\text{logit}(\pi_i) = \beta_0 + \beta_1\,\text{laufzeit}_i + \beta_2\,\text{moral}_i + \beta_3\,\text{laufkont}_i + \beta_4\,\text{alter}_i$$
+$$\text{logit}(\pi_i) = \beta_0 + \beta_1\,\text{laufzeit}_i + \beta_2\,\text{moral}_i + \beta_3\,\text{laufkont}_i$$
 
 Categorical predictors are represented using indicator variables relative to their reference categories.
 
-The variable `beruf` was excluded because its inclusion did not reduce AIC sufficiently to justify the additional parameters.
+The variables `beruf` and `alter` were excluded because their inclusion did not reduce AIC sufficiently to justify the additional parameters.
 
 ### Model Comparison
 Nested models are additionally compared using likelihood-ratio tests:
@@ -111,7 +111,7 @@ Likelihood-ratio tests assess whether additional predictors significantly improv
 
 **Evidence:** The residual deviance is compared with its asymptotic $\chi^2_{df}$ reference distribution.
 
-**Result:** Residual deviance = 948.9, df = 902, p = 0.135.
+**Result:** Residual deviance = 693.8, df = 645, p = 0.089.
 
 **Interpretation:** The residual deviance does not provide statistically significant evidence of lack of fit at the 5% level.
 
@@ -154,9 +154,9 @@ Stratification approximately preserves the class distribution across the trainin
 
 | Metric | Train | Test |
 |---|---:|---:|
-| AUC | 0.753 | 0.811 |
-| MSE| 0.175 | 0.160 |
-| Error Rate | 25.6% | 25.3% |
+| AUC | 0.751 | 0.809 |
+| Brier Score | 0.175 | 0.161 |
+| Error Rate | 25.2% | 25.9% |
 
 The similarity between training and test performance provides no pronounced evidence of overfitting on this hold-out sample.
 
@@ -194,7 +194,6 @@ An odds ratio above 1 indicates higher odds of repayment for a one-unit increase
 **Key Predictor Impacts:**
 *   **Laufzeit:** An odds ratio of 0.966 means that a one-month increase in duration multiplies the odds of repayment by 0.966, holding all other predictors constant.
 *   **Moral:** Category 4 has an odds ratio of 4.601 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline moral category.
-*   **Alter:** An odds ratio of 1.013 means that a one-year increase in age multiplies the odds of repayment by 1.013, holding all other predictors constant.
 
 The displayed probability threshold represents an operating point selected according to the ROC criterion ($J = \text{Sensitivity} + \text{Specificity} - 1$). In a production credit-risk setting, the final decision threshold would additionally depend on asymmetric misclassification costs, risk appetite, and regulatory requirements.
 
@@ -202,12 +201,11 @@ The displayed probability threshold represents an operating point selected accor
 
 ## Limitations & Extensions
 
-*   Model selection is currently performed before the train/test split. A fully leakage-resistant workflow would perform model selection exclusively within the training sample, with the test set used only for final evaluation.
 *   Single hold-out split (no repeated cross-validation).
 *   No temporal validation.
 *   No explicit cost-sensitive threshold optimization.
 
-Natural extensions include leakage-resistant model selection, repeated cross-validation, calibration analysis, interaction effects, nonlinear terms, and cost-sensitive decision thresholds.
+Natural extensions include repeated cross-validation, calibration analysis, interaction effects, nonlinear terms, and cost-sensitive decision thresholds.
 
 ---
 
