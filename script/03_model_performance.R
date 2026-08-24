@@ -47,12 +47,21 @@ auc_value <- auc(roc_obj)
 
 # Export geometric interpretation of AUC
 png("output/performance/roc_curve.png", width = 1800, height = 1500, res = 300)
-plot(roc_obj, main = "ROC and AUC", 
-     col = "darkblue", lwd = 2, print.auc = TRUE, 
-     auc.polygon = TRUE, auc.polygon.col = "lightblue", 
-     print.thres = "best") # Highlights the optimal threshold
+plot(
+  roc_obj, 
+  main = "ROC Curve with AUC Area", 
+  col = "darkblue", 
+  lwd = 2, 
+  print.auc = TRUE, 
+  auc.polygon = TRUE, 
+  auc.polygon.col = "lightblue", 
+  print.thres = "best", 
+  print.thres.pch = 19,         # Ausgefüllter, markanter Punkt
+  print.thres.cex = 1.2,        # Größere Schrift und größerer Punkt
+  print.thres.col = "darkred",  # Rote Farbe zur Hervorhebung
+  print.thres.pattern = "Optimal Cut-Off: %.3f \n(Spec: %.3f, Sens: %.3f)" # Erklärender Text
+)
 dev.off()
-
 # 4.3 Error Rates and Mean Squared Error (MSE)
 test_accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
 test_error <- 1 - test_accuracy
