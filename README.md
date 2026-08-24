@@ -34,7 +34,7 @@ Accordingly, `kredit = 1` represents the non-default class, while `kredit = 0` r
 | Removed predictor | `beruf` |
 | Test split | 70/30 stratified hold-out |
 | Test AUC | 0.811 |
-| Test MSE | 0.160 |
+| Test Brier Score | 0.160 |
 | Test Error Rate | 25.3% |
 
 ---
