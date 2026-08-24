@@ -20,7 +20,7 @@ credit$beruf <- as.factor(credit$beruf)
 # 2. Stratified Train-Test Split -----------------------------------------------
 set.seed(234)
 
-# Stratified sampling ensures the exact default rate is maintained in both sets
+# Stratified sampling ensures the exact class distribution (repayment rate) is maintained in both sets
 data_split <- initial_split(credit, prop = 0.7, strata = kredit)
 data_train <- training(data_split)
 data_test  <- testing(data_split)
@@ -72,8 +72,6 @@ phat_train <- predict(model_train, type = "response")
 yhat_train <- ifelse(phat_train >= 0.5, 1, 0)
 train_error <- 1 - (sum(diag(table(Predicted = yhat_train, Actual = data_train$kredit))) / nrow(data_train))
 train_brier <- mean((phat_train - data_train$kredit)^2)
-
-# NEU: Berechne den Train AUC
 roc_obj_train <- roc(data_train$kredit, phat_train, quiet = TRUE)
 auc_value_train <- auc(roc_obj_train)
 

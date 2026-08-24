@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script: 01_data_prep_and_selection.R
 # Purpose: Data inspection, functional form assessment (EDA, Partial Residuals),  
-#          and model selection for credit default prediction.
+#          and model selection for credit repayment prediction.
 # ==============================================================================
 
 # 1. Setup ---------------------------------------------------------------------
@@ -22,7 +22,7 @@ summary(credit)
 # Check for missing values
 colSums(is.na(credit))
 
-# Response distribution (The logistic model predicts P(kredit = 1))
+# Response distribution (The logistic model predicts P(kredit = 1), i.e., probability of proper repayment)
 table(credit$kredit)
 prop.table(table(credit$kredit))
 
@@ -197,7 +197,7 @@ write.csv(
   "output/tables/odds_ratios.csv",
   row.names = FALSE
 )
-# Odds ratios > 1 indicate higher odds of kredit = 1,
-# whereas odds ratios < 1 indicate lower odds of kredit = 1.
+# Odds ratios > 1 indicate higher odds of repayment (kredit = 1),
+# whereas odds ratios < 1 indicate lower odds of repayment (higher risk).
 # For factor variables, odds ratios are interpreted relative
 # to the respective reference category documented above.
