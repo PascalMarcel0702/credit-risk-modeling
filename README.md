@@ -192,12 +192,20 @@ Natural extensions include nested model selection, probabilistic accuracy analys
 
 ```text
 .
-├── data/credit.txt                     (Raw dataset)
+├── data/
+│   └── credit.txt                              (Raw dataset)
 ├── output/
-│   ├── figures/                        (Diagnostic plots)
-│   ├── tables/                         (Parameter and GoF tables)
-│   └── performance/                    (Validation metrics and ROC)
-├── 01_data_prep_and_selection.R        (Aggregation and stepwise AIC selection)
-├── 02_model_diagnostics.R              (Residual analysis and influence metrics)
-├── 03_model_performance.R              (Stratified hold-out and ROC/Brier evaluation)
-└── README.md                           (Project documentation)
+│   ├── figures/                                (Diagnostic and EDA plots)
+│   ├── performance/                        
+│   │   ├── classification_metrics.csv          (Test vs. Train risk metrics)
+│   │   ├── confusion_matrix.csv                (Absolute prediction counts)
+│   │   └── roc_curve.png                       (High-res ROC visualization)
+│   ├── tables/                                 (Odds ratios and GoF tables)
+│   ├── credit_agg.rds                          (Saved aggregated dataset)
+│   └── model_main.rds                          (Saved final GLM object)
+├── script/
+│   ├── 01_data_prep_and_selection.R            (Aggregation and stepwise AIC selection)
+│   ├── 02_model_diagnostics.R                  (Residual analysis and influence metrics)
+│   └── 03_model_performance.R                  (Stratified hold-out and ROC/Brier evaluation)
+├── credit-risk-modeling.Rproj                  (RStudio project file)
+└── README.md                                   (Project documentation)
