@@ -145,6 +145,7 @@ print(continuous_summary)
 
 
 png("output/figures/gam_continuous_predictors.png", width = 2600, height = 1200, res = 300)
+png("output/figures/gam_continous_predictors.png", width = 1000, height = 800, res = 300)
 # 2. Set global graphical parameters for a modern look
 # mfrow = c(1, 2) creates a 1x2 grid (side-by-side)
 # bty = "l" removes the top and right box borders for a cleaner look
