@@ -302,11 +302,12 @@ The displayed probability threshold represents an operating point selected accor
 
 ## Limitations & Extensions
 
-*   **Model Specification:** The current specification strictly assumes additive main effects. A systematic evaluation of pairwise interaction effects via sequential analysis of deviance was not performed.
-*   **Validation Strategy:** The out-of-sample evaluation relies on a single hold-out split without repeated cross-validation or temporal validation.
-*   **Decision Thresholds:** No explicit cost-sensitive threshold optimization was applied for the classification cut-off.
+* Model Specification: The final model relies on a parsimonious additive framework. While key interactions were evaluated visually, exhaustive algorithmic screening of higher-order terms was omitted to prevent overfitting.
+* Validation Strategy: Out-of-sample evaluation is based on a single hold-out split rather than repeated cross-validation.
+* Decision Thresholds: No explicit cost-sensitive threshold optimization was applied for the classification cut-off.
 
-Natural extensions include nested model selection incorporating interaction and nonlinear terms, probability calibration analysis, and asymmetric cost-sensitive decision thresholds.
+Natural extensions include implementing k-fold cross-validation, probability calibration, and asymmetric cost matrices to optimize decision thresholds.
+
 ---
 
 ## Repository Structure
