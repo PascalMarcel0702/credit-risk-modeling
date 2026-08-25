@@ -29,10 +29,9 @@ Accordingly, `kredit = 1` represents the non-default class, while `kredit = 0` r
 | Aspect | Result |
 |---|---|
 | Observations | 1,000 borrowers |
-| Aggregated profiles | 654 |
+| Training profiles (aggregated)| 700 (654) |
 | Selected predictors | `laufzeit`, `moral`, `laufkont` |
 | Removed predictors | `beruf`, `alter` |
-| Test split | 70/30 stratified hold-out |
 | Test AUC | 0.809 |
 | Test Brier Score | 0.161 |
 | Test Error Rate | 25.9% |
@@ -42,50 +41,58 @@ Accordingly, `kredit = 1` represents the non-default class, while `kredit = 0` r
 ## Methodology
 
 ### Why Logistic Regression?
-Logistic regression was chosen because it combines probabilistic prediction with direct coefficient and odds-ratio interpretation, making it particularly suitable for an interpretable credit-risk setting.
+The choice of a standard binomial logistic regression is grounded in the structural properties of the response variable and the absence of overdispersion:
+
+*   **Probability Constraints:** The dependent variable is binary. Standard linear regression cannot constrain predicted values to the $[0, 1]$ interval. The logit link function naturally maps the unbounded linear predictor $\eta_i \in \mathbb{R}$ to valid conditional probabilities.
+*   **Interpretability (Canonical Link):** While other cumulative distribution functions (e.g., Probit or Complementary log-log) could restrict predictions to valid probabilities, the logit link is the canonical link for the binomial distribution. It uniquely allows coefficients to be exponentiated into odds ratios, which is crucial for transparent risk differentiation in credit portfolios.
+*   **Absence of Overdispersion:** Aggregated binomial profiles often exhibit variance greater than the theoretical binomial variance $np(1-p)$ due to unobserved heterogeneity, which would necessitate mixed models (e.g., Beta-Binomial regression). However, the diagnostic evaluation yielded a Pearson heterogeneity factor ($\hat{\sigma}^2$) close to 1. This indicates no severe overdispersion, confirming that the standard Binomial GLM is adequate and more complex models are not required.
 
 ### Data Aggregation
-Identical covariate profiles are aggregated into grouped binomial observations:
+To prevent data leakage during model evaluation, identical covariate profiles within the training set are aggregated into grouped binomial observations:
 
 $$Y_j \sim \text{Binomial}(n_j,\pi_j)$$
 
-where $n_j$ is the number of borrowers in profile $j$, $Y_j$ is the observed number of repayments, and $\pi_j$ is the profile-specific probability of repayment.
+*   **$n_j$**: Number of borrowers sharing the identical covariate profile $j$.
+*   **$Y_j$**: Observed number of proper loan repayments within profile $j$.
+*   **$\pi_j$**: Profile-specific conditional probability of repayment.
 
-The aggregation preserves the binomial likelihood and provides the grouped structure used for residual and goodness-of-fit diagnostics.
+Grouping binary responses into binomial counts is a mathematical prerequisite: it ensures the residual deviance and Pearson statistics follow an approximate $\chi^2$ distribution, which enables valid goodness-of-fit and overdispersion diagnostics.
 
 ### Mathematical Foundation
-The linear predictor $\eta_i = \mathbf{x}_i^\top\boldsymbol{\beta}$ is mapped to the repayment probability via the inverse logit function:
+Let $\pi_j = P(\text{kredit}_j = 1 \mid \mathbf{x}_j)$ denote the conditional probability of proper repayment for a distinct covariate profile $j$. The model connects the linear predictor $\eta_j = \mathbf{x}_j^\top\boldsymbol{\beta}$ to this probability via the canonical logit link:
 
-$$\pi_i = \frac{1}{1+\exp(-\eta_i)}$$
+$$ \pi_j = \frac{1}{1+\exp(-\eta_j)} \iff \log\left(\frac{\pi_j}{1-\pi_j}\right) = \mathbf{x}_j^\top\boldsymbol{\beta} $$
 
-Equivalently, the model estimates log-odds:
+This equivalence illustrates the dual structural of the chosen model: the left equation naturally bounds the predicted probabilities to the valid $(0, 1)$ interval, while the right equation guarantees a strict linear relationship between the predictors and the log-odds.
 
-$$\log\left(\frac{\pi_i}{1-\pi_i}\right) = \mathbf{x}_i^\top\boldsymbol{\beta}$$
+With the aggregated binomial data structure $Y_j \sim \text{Binomial}(n_j, \pi_j)$, the regression coefficients are estimated by maximizing the binomial log-likelihood:
 
-Here, $\pi_i = P(kredit_i = 1 \mid \mathbf{x}_i)$ denotes the conditional probability of repayment.
-Coefficients are estimated by maximum likelihood:
-
-$$\ell(\boldsymbol{\beta}) = \sum_{i=1}^{n} \left[ y_i\log(\pi_i) + (1-y_i)\log(1-\pi_i) \right]$$
+$$ \ell(\boldsymbol{\beta}) = \sum_{j=1}^{J} \left[ Y_j \log(\pi_j) + (n_j - Y_j) \log(1 - \pi_j) \right] $$
 
 ### Model Selection
-Additional candidate variables are evaluated sequentially. AIC balances model fit against model complexity by penalizing the number of estimated parameters:
+Candidate variables are evaluated sequentially using both the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC). Both criteria balance model fit against complexity, with BIC applying a stricter penalty for the number of estimated parameters ($k$) based on the sample size ($n = 654$):
 
 $$\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k$$
+$$\text{BIC} = -2\ell(\hat{\boldsymbol{\beta}}) + \ln(n)k$$
 
-The selected model is:
+Both criteria unanimously selected the identical model:
 
-$$\text{logit}(\pi_i) = \beta_0 + \beta_1\,\text{laufzeit}_i + \beta_2\,\text{moral}_i + \beta_3\,\text{laufkont}_i$$
+$$\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{moral}_j + \beta_3\,\text{laufkont}_j$$
 
-Categorical predictors are represented using indicator variables relative to their reference categories.
+Categorical predictors are represented using indicator variables relative to their reference categories. 
 
-The variables `beruf` and `alter` were excluded because their inclusion did not reduce AIC sufficiently to justify the additional parameters.
+The candidate variables `beruf` and `alter` were excluded in both the AIC- and BIC-selected models, as their inclusion failed to improve the likelihood sufficiently to overcome either complexity penalty. This unanimous selection underscores the robustness of the retained predictors and their significant informational contribution to the model.
 
 ### Model Comparison
-Nested models are additionally compared using likelihood-ratio tests:
+Nested models are additionally compared using sequential likelihood-ratio tests (implemented via Analysis of Deviance). In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
 
-$$G^2 = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{full}) - \ell(\hat{\boldsymbol{\beta}}_{reduced}) \right]$$
+$$G^2 = D_{\text{reduced}} - D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) - \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]$$
 
-Likelihood-ratio tests assess whether additional predictors significantly improve model fit, while AIC provides the complementary complexity-adjusted selection criterion.
+Evaluated against a $\chi^2$ distribution, these partial deviance tests formally confirm the sequential variable selection:
+
+*   **Null vs. Baseline (`moral`):** Adding the baseline predictor `moral` provides a highly significant improvement over the intercept-only model ($p < 0.001$).
+*   **Baseline vs. Main (`moral`, `laufkont`, `laufzeit`):** The variables selected by AIC and BIC provide a further, highly significant improvement to the model fit ($p < 0.001$).
+*   **Marginal Additions (`alter`, `beruf`):** Adding either `alter` ($p = 0.248$) or `beruf` ($p = 0.758$) individually to the main model yields no significant reduction in residual deviance. This validates the decision of the AIC/BIC selection to exclude both predictors.
 
 ---
 
@@ -192,8 +199,9 @@ $$\text{OR}_j = e^{\beta_j}$$
 An odds ratio above 1 indicates higher odds of repayment for a one-unit increase in the predictor, holding all other variables constant. For categorical variables, the odds ratio is interpreted relative to the reference category.
 
 **Key Predictor Impacts:**
-*   **Laufzeit:** An odds ratio of 0.966 means that a one-month increase in duration multiplies the odds of repayment by 0.966, holding all other predictors constant.
-*   **Moral:** Category 4 has an odds ratio of 4.601 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline moral category.
+*   **Laufzeit:** An odds ratio of 0.970 means that a one-month increase in duration multiplies the odds of repayment by 0.970, holding all other predictors constant.
+*   **Moral:** The highest factor level (Category 4) has an odds ratio of 5.607 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline moral category.
+*   **Laufkont:** The highest factor level (Category 4) has an odds ratio of 5.510 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline current account category.
 
 The displayed probability threshold represents an operating point selected according to the ROC criterion ($J = \text{Sensitivity} + \text{Specificity} - 1$). In a production credit-risk setting, the final decision threshold would additionally depend on asymmetric misclassification costs, risk appetite, and regulatory requirements.
 
@@ -201,12 +209,11 @@ The displayed probability threshold represents an operating point selected accor
 
 ## Limitations & Extensions
 
-*   Single hold-out split (no repeated cross-validation).
-*   No temporal validation.
-*   No explicit cost-sensitive threshold optimization.
+*   **Model Specification:** The current specification strictly assumes additive main effects. A systematic evaluation of pairwise interaction effects via sequential analysis of deviance was not performed.
+*   **Validation Strategy:** The out-of-sample evaluation relies on a single hold-out split without repeated cross-validation or temporal validation.
+*   **Decision Thresholds:** No explicit cost-sensitive threshold optimization was applied for the classification cut-off.
 
-Natural extensions include repeated cross-validation, calibration analysis, interaction effects, nonlinear terms, and cost-sensitive decision thresholds.
-
+Natural extensions include nested model selection incorporating interaction and nonlinear terms, probability calibration analysis, and asymmetric cost-sensitive decision thresholds.
 ---
 
 ## Repository Structure
@@ -233,11 +240,13 @@ Natural extensions include repeated cross-validation, calibration analysis, inte
 │   │   ├── goodness_of_fit.csv                 (Residual deviance GoF test)
 │   │   ├── model_comparison_aic.csv            (AIC stepwise selection steps)
 │   │   └── odds_ratios.csv                     (Model coefficients and ORs)
-│   ├── credit_agg.rds                          (Saved aggregated dataset)
+│   ├── credit_agg.rds                          (Saved aggregated training dataset)
+│   ├── data_test.rds                           (Saved hold-out test split)
+│   ├── data_train.rds                          (Saved training split)
 │   └── model_main.rds                          (Saved final GLM object)
 ├── script/
-│   ├── 01_data_prep_and_selection.R            (Aggregation and stepwise AIC selection)
+│   ├── 01_data_prep_and_selection.R            (Split, aggregation, and stepwise AIC selection)
 │   ├── 02_model_diagnostics.R                  (Residual analysis and influence metrics)
-│   └── 03_model_performance.R                  (Stratified hold-out and ROC/Brier evaluation)
+│   └── 03_model_performance.R                  (Out-of-sample hold-out and ROC/Brier evaluation)
 ├── credit-risk-modeling.Rproj                  (RStudio project file)
 └── README.md                                   (Project documentation)
