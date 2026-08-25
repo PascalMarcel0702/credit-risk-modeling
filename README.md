@@ -92,7 +92,7 @@ Evaluated against a $\chi^2$ distribution, these partial deviance tests formally
 
 *   **Null vs. Baseline (`moral`):** Adding the baseline predictor `moral` provides a highly significant improvement over the intercept-only model ($p < 0.001$).
 *   **Baseline vs. Main (`moral`, `laufkont`, `laufzeit`):** The variables selected by AIC and BIC provide a further, highly significant improvement to the model fit ($p < 0.001$).
-*   **Main vs. Full (+ `alter`, `beruf`):** Adding the remaining candidate variables does not significantly improve the model fit ($p = 0.567$), empirically validating their exclusion.
+*   **Marginal Additions (`alter`, `beruf`):** Adding either `alter` ($p = 0.248$) or `beruf` ($p = 0.758$) individually to the main model yields no significant reduction in residual deviance. This validates the decision of the AIC/BIC selection to exclude both predictors.
 
 ---
 
