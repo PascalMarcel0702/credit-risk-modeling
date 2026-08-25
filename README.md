@@ -119,13 +119,32 @@ The functional form of the continuous predictors was assessed using Generalized 
 With $\alpha = 0.05$, neither predictor shows statistically significant evidence of non-linearity. Both are therefore specified as linear main effects.
 
 #### Interaction Diagnostics
-Potential interactions were assessed using empirical logit plots with a continuity correction[cite: 1]:
+Potential interactions were assessed using empirical logit plots with a continuity correction:
 
 $$
 \text{Empirical Logit}_i = \ln\left(\frac{y_i + 0.5}{n_i-y_i+0.5}\right)
 $$
 
-For both `laufzeit` × `moral` and `laufzeit` × `laufkont`, the dominant categories exhibit approximately parallel downward trends. Apparent deviations in sparse categories and at higher values of `laufzeit` are attributable primarily to limited observations and boundary effects of the smoother rather than to a systematic interaction pattern. Consequently, there is no strong empirical evidence for interaction terms.
+To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories.
+
+**1. Interaction Check: Laufzeit vs. Moral**
+<p align="center">
+  <img src="output/figures/eda_interaction_laufzeit_moral.png" width="90%" alt="Interaction Check: Laufzeit vs. Moral">
+</p>
+
+* **Core Population:** Categories 2 and 4 represent the vast majority of the data (82.3% combined). Both panels exhibit consistent, roughly parallel downward trends.
+* **Sparse Categories:** The erratic crossing patterns observed in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) are driven by data sparsity and high variance rather than systematic effects.
+
+**2. Interaction Check: Laufzeit vs. Laufkont**
+<p align="center">
+  <img src="output/figures/eda_interaction_laufzeit_laufkont.png" width="90%" alt="Interaction Check: Laufzeit vs. Laufkont">
+</p>
+
+* **Core Population:** Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and generally follow a steady downward trend.
+* **Minor Deviations:** Minor non-parallelisms, such as the slight plateau in category 4 between 20 and 30 months, trace back to boundary effects of the non-parametric smoother as data density decreases at higher durations.
+
+**Conclusion**
+Since the dominant subgroups across both key variables exhibit parallel trajectories, there is no systemic interaction pattern. Apparent deviations are strictly isolated to sparse data regions. Therefore, proceeding with a parsimonious, additive main-effects model is methodologically sound and effectively prevents overfitting.
 
 #### Specification Decision
 The EDA supports a parsimonious additive main-effects specification:
