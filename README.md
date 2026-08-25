@@ -112,7 +112,7 @@ The functional form of the continuous predictors was assessed using Generalized 
 | **`laufzeit`** | Approximately linear downward trend |   0.347  | Linear term retained |
 
 <p align="center">
-  <img src="output/figures/gam_continous_predictors.png" width="90%" alt="Functional Form of Continuous Predictors">
+  <img src="output/figures/gam_continuous_predictors.png" width="90%" alt="Functional Form of Continuous Predictors">
 </p>
 **Figure:** GAM smooths for `alter` and `laufzeit`. The estimated relationships do not provide statistically significant evidence for non-linearity.
 
