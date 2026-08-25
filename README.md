@@ -70,17 +70,18 @@ With the aggregated binomial data structure $Y_j \sim \text{Binomial}(n_j, \pi_j
 $$ \ell(\boldsymbol{\beta}) = \sum_{j=1}^{J} \left[ Y_j \log(\pi_j) + (n_j - Y_j) \log(1 - \pi_j) \right] $$
 
 ### Model Selection
-Additional candidate variables are evaluated sequentially. AIC balances model fit against model complexity by penalizing the number of estimated parameters:
+Candidate variables are evaluated sequentially using both the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC). Both criteria balance model fit against complexity, with BIC applying a stricter penalty for the number of estimated parameters ($k$) based on the sample size ($n = 654$):
 
 $$\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k$$
+$$\text{BIC} = -2\ell(\hat{\boldsymbol{\beta}}) + \ln(n)k$$
 
-The selected model is:
+Both criteria unanimously selected the identical model:
 
 $$\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{moral}_j + \beta_3\,\text{laufkont}_j$$
 
-Categorical predictors are represented using indicator variables relative to their reference categories.
+Categorical predictors are represented using indicator variables relative to their reference categories. 
 
-The variables `beruf` and `alter` were excluded because their inclusion did not reduce the AIC sufficiently to justify the additional parameters.
+The candidate variables `beruf` and `alter` were excluded in both the AIC- and BIC-selected models, as their inclusion failed to improve the likelihood sufficiently to overcome either complexity penalty. This unanimous selection underscores the robustness of the retained predictors and their significant informational contribution to the model.
 
 ### Model Comparison
 Nested models are additionally compared using sequential likelihood-ratio tests. In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
