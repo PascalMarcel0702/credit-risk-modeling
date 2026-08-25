@@ -114,6 +114,7 @@ The functional form of the continuous predictors was assessed using Generalized 
 <p align="center">
   <img src="output/figures/gam_continuous_predictors.png" width="90%" alt="Functional Form of Continuous Predictors">
 </p>
+
 **Figure:** GAM smooths for `alter` and `laufzeit`. The estimated relationships do not provide statistically significant evidence for non-linearity.
 
 With $\alpha = 0.05$, neither predictor shows statistically significant evidence of non-linearity. Both are therefore specified as linear main effects.
@@ -127,21 +128,21 @@ $$
 
 To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories.
 
-**1. Interaction Check: Laufzeit vs. Moral**
+*1. Interaction Check: Laufzeit vs. Moral*
 <p align="center">
-  <img src="output/figures/eda_interaction_laufzeit_moral.png" width="90%" alt="Interaction Check: Laufzeit vs. Moral">
+  <img src="output/figures/eda_interaction_laufzeit_moral.png" width="70%" alt="Interaction Check: Laufzeit vs. Moral">
 </p>
 
-* **Core Population:** Categories 2 and 4 represent the vast majority of the data (82.3% combined). Both panels exhibit consistent, roughly parallel downward trends.
-* **Sparse Categories:** The erratic crossing patterns observed in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) are driven by data sparsity and high variance rather than systematic effects.
+* Core Population: Categories 2 and 4 represent the vast majority of the data (82.3% combined). Both panels exhibit consistent, roughly parallel downward trends.
+* Sparse Categories: The erratic crossing patterns observed in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) are driven by data sparsity and high variance rather than systematic effects.
 
-**2. Interaction Check: Laufzeit vs. Laufkont**
+*2. Interaction Check: Laufzeit vs. Laufkont*
 <p align="center">
-  <img src="output/figures/eda_interaction_laufzeit_laufkont.png" width="90%" alt="Interaction Check: Laufzeit vs. Laufkont">
+  <img src="output/figures/eda_interaction_laufzeit_laufkont.png" width="70%" alt="Interaction Check: Laufzeit vs. Laufkont">
 </p>
 
-* **Core Population:** Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and generally follow a steady downward trend.
-* **Sparse Polulation:** Minor non-parallelisms, such as the slight plateau in category 4 between 20 and 30 months, trace back to boundary effects of the non-parametric smoother as data density decreases at higher durations.
+* Core Population: Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and generally follow a steady downward trend.
+* Sparse Categories: Minor non-parallelisms, such as the slight plateau in category 4 between 20 and 30 months, trace back to boundary effects of the non-parametric smoother as data density decreases at higher durations.
 
 **Conclusion**
 Since the dominant subgroups across both key variables exhibit parallel trajectories, there is no systemic interaction pattern. Apparent deviations are strictly isolated to sparse data regions. Therefore, proceeding with a parsimonious, additive main-effects model is methodologically sound and effectively prevents overfitting.
