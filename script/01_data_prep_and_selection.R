@@ -143,6 +143,14 @@ print(continuous_summary)
 # - If significant (p < 0.05), a strictly linear term is insufficient. The variable 
 #   should be transformed (e.g., using polynomials) or discretized before entering the GLM.
 
+
+png("output/figures/gam_continuous_predictors.png", width = 2600, height = 1200, res = 300)
+# 2. Set global graphical parameters for a modern look
+# mfrow = c(1, 2) creates a 1x2 grid (side-by-side)
+# bty = "l" removes the top and right box borders for a cleaner look
+# las = 1 makes all axis labels horizontal and easier to read
+par(mfrow = c(1, 2), mar = c(5, 5, 4, 2) + 0.1, las = 1, bty = "l", cex.main = 1.2, cex.lab = 1.1)
+
 # Assess 'alter' (Age)
 gam_alter <- gam(
   cbind(kredit, no_kredit) ~ s(alter),
@@ -150,17 +158,14 @@ gam_alter <- gam(
   family = binomial(link = "logit")
 )
 
-png("output/figures/gam_alter.png", width = 1000, height = 800, res = 300)
 plot(gam_alter, 
      se = TRUE, 
      main = "Functional Form: Alter (Age)", 
      xlab = "Age in Years", 
      ylab = "Partial Effect on Log-Odds",
      col = "#2c3e50",      # Modern dark slate blue
-     lwd = 2.5,            # Thicker line
-     col.se = "#7f8c8d",   # Subtle gray for standard errors
-     lty.se = 2)
-dev.off()
+     lwd = 2.5            # Thicker line
+     )
 
 summary(gam_alter)
 # Interpretation for 'alter':
@@ -177,16 +182,14 @@ gam_laufzeit <- gam(
   family = binomial(link = "logit")
 )
 
-png("output/figures/gam_laufzeit.png", width = 1000, height = 800, res = 150)
 plot(gam_laufzeit, 
      se = TRUE, 
      main = "Functional Form: Laufzeit (Duration)", 
      xlab = "Duration in Months", 
      ylab = "Partial Effect on Log-Odds",
      col = "#2c3e50", 
-     lwd = 2.5, 
-     col.se = "#7f8c8d", 
-     lty.se = 2)
+     lwd = 2.5)
+
 dev.off()
 
 summary(gam_laufzeit)
@@ -199,7 +202,7 @@ summary(gam_laufzeit)
 # Clean up temporary GAM fits
 rm(gam_alter, gam_laufzeit)
 
-# 5.3 Exploratory Data Analysis for Interaction Effects
+# 5.3 Exploratory Data Analysis for Interaction Effects-------------------------
 # Objective: Check empirical logit plots for non-parallel trends to assess 
 # the need for interaction terms. Instead of all 10 combinations, we analyze 
 # the strongest main effects ('moral' and 'laufkont') interacting with 'laufzeit'.
