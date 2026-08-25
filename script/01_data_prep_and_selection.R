@@ -9,6 +9,7 @@ library(tidyverse)
 library(interactions)
 library(gam)
 library(rsample)
+library(utf8)
 
 # Create output directories if they do not exist
 dir.create("output/figures", recursive = TRUE, showWarnings = FALSE)
@@ -113,6 +114,23 @@ rm(fit_moral, fit_laufkont, fit_beruf)
 
 
 # 5.2 Continuous Variables (Quantitative) & Functional Form Assessment
+
+# Descriptive statistics
+
+continuous_summary <- tibble(
+  Variable = c("laufzeit", "alter"),
+  Min = c(min(credit$laufzeit), min(credit$alter)),
+  Median = c(median(credit$laufzeit), median(credit$alter)),
+  Mean = c(mean(credit$laufzeit), mean(credit$alter)),
+  SD = c(sd(credit$laufzeit), sd(credit$alter)),
+  Max = c(max(credit$laufzeit), max(credit$alter))
+)
+
+print(continuous_summary)
+
+
+# Functional Form Assessment ---------------------------------------------------
+
 # For continuous covariates (alter, laufzeit), we must verify if they have a 
 # strictly linear relationship with the log-odds, or if they require transformation.
 # We use Generalized Additive Models (GAMs) with smoothing splines s() to estimate
@@ -133,7 +151,15 @@ gam_alter <- gam(
 )
 
 png("output/figures/gam_alter.png", width = 1000, height = 800, res = 300)
-plot(gam_alter, se = TRUE, main = "Smooth term for alter")
+plot(gam_alter, 
+     se = TRUE, 
+     main = "Functional Form: Alter (Age)", 
+     xlab = "Age in Years", 
+     ylab = "Partial Effect on Log-Odds",
+     col = "#2c3e50",      # Modern dark slate blue
+     lwd = 2.5,            # Thicker line
+     col.se = "#7f8c8d",   # Subtle gray for standard errors
+     lty.se = 2)
 dev.off()
 
 summary(gam_alter)
@@ -152,7 +178,15 @@ gam_laufzeit <- gam(
 )
 
 png("output/figures/gam_laufzeit.png", width = 1000, height = 800, res = 150)
-plot(gam_laufzeit, se = TRUE, main = "Smooth term for laufzeit")
+plot(gam_laufzeit, 
+     se = TRUE, 
+     main = "Functional Form: Laufzeit (Duration)", 
+     xlab = "Duration in Months", 
+     ylab = "Partial Effect on Log-Odds",
+     col = "#2c3e50", 
+     lwd = 2.5, 
+     col.se = "#7f8c8d", 
+     lty.se = 2)
 dev.off()
 
 summary(gam_laufzeit)
