@@ -141,7 +141,7 @@ To evaluate whether the continuous variable `laufzeit` interacts with the strong
 </p>
 
 * **Core Population:** Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and generally follow a steady downward trend.
-* **Minor Deviations:** Minor non-parallelisms, such as the slight plateau in category 4 between 20 and 30 months, trace back to boundary effects of the non-parametric smoother as data density decreases at higher durations.
+* **Sparse Polulation:** Minor non-parallelisms, such as the slight plateau in category 4 between 20 and 30 months, trace back to boundary effects of the non-parametric smoother as data density decreases at higher durations.
 
 **Conclusion**
 Since the dominant subgroups across both key variables exhibit parallel trajectories, there is no systemic interaction pattern. Apparent deviations are strictly isolated to sparse data regions. Therefore, proceeding with a parsimonious, additive main-effects model is methodologically sound and effectively prevents overfitting.
