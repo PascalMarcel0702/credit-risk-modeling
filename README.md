@@ -84,11 +84,15 @@ Categorical predictors are represented using indicator variables relative to the
 The candidate variables `beruf` and `alter` were excluded in both the AIC- and BIC-selected models, as their inclusion failed to improve the likelihood sufficiently to overcome either complexity penalty. This unanimous selection underscores the robustness of the retained predictors and their significant informational contribution to the model.
 
 ### Model Comparison
-Nested models are additionally compared using sequential likelihood-ratio tests. In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
+Nested models are additionally compared using sequential likelihood-ratio tests (implemented via Analysis of Deviance). In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
 
 $$G^2 = D_{\text{reduced}} - D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) - \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]$$
 
-Evaluated against a $\chi^2$ distribution, these partial deviance tests assess whether additional predictors significantly improve the model fit, while the AIC provides a complementary, complexity-adjusted selection criterion.
+Evaluated against a $\chi^2$ distribution, these partial deviance tests formally confirm the sequential variable selection:
+
+*   **Null vs. Baseline (`moral`):** Adding the baseline predictor `moral` provides a highly significant improvement over the intercept-only model ($p < 0.001$).
+*   **Baseline vs. Main (`moral`, `laufkont`, `laufzeit`):** The variables selected by AIC and BIC provide a further, highly significant improvement to the model fit ($p < 0.001$).
+*   **Main vs. Full (+ `alter`, `beruf`):** Adding the remaining candidate variables does not significantly improve the model fit ($p = 0.567$), empirically validating their exclusion.
 
 ---
 
