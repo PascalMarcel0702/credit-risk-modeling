@@ -76,18 +76,18 @@ $$\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k$$
 
 The selected model is:
 
-$$\text{logit}(\pi_i) = \beta_0 + \beta_1\,\text{laufzeit}_i + \beta_2\,\text{moral}_i + \beta_3\,\text{laufkont}_i$$
+$$\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{moral}_j + \beta_3\,\text{laufkont}_j$$
 
 Categorical predictors are represented using indicator variables relative to their reference categories.
 
-The variables `beruf` and `alter` were excluded because their inclusion did not reduce AIC sufficiently to justify the additional parameters.
+The variables `beruf` and `alter` were excluded because their inclusion did not reduce the AIC sufficiently to justify the additional parameters.
 
 ### Model Comparison
-Nested models are additionally compared using likelihood-ratio tests:
+Nested models are additionally compared using sequential likelihood-ratio tests. In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
 
-$$G^2 = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{full}) - \ell(\hat{\boldsymbol{\beta}}_{reduced}) \right]$$
+$$G^2 = D_{\text{reduced}} - D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) - \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]$$
 
-Likelihood-ratio tests assess whether additional predictors significantly improve model fit, while AIC provides the complementary complexity-adjusted selection criterion.
+Evaluated against a $\chi^2$ distribution, these partial deviance tests assess whether additional predictors significantly improve the model fit, while the AIC provides a complementary, complexity-adjusted selection criterion.
 
 ---
 
