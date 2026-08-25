@@ -81,24 +81,51 @@ saveRDS(credit_agg, "output/credit_agg.rds")
 
 # 5. Exploratory Data Analysis (EDA) -------------------------------------------
 
-# 5.1 Categorical variables
+# 5.1 Categorical Variables (Qualitative)
+# Calculation of relative frequencies to identify sparse categories 
 prop.table(table(credit$moral))
 prop.table(table(credit$laufkont))
 prop.table(table(credit$beruf))
+#Interpretation: No empty categories. However, 'beruf' level 1 is quite rare (only 2.2%), 
+# which will lead to high uncertainty (wide confidence intervals) for this specific group.
 
+# Visualize the marginal effect of each categorical variable on the log-oddds -> To get idea of risk profile of each category
 fit_moral <- glm(cbind(kredit, no_kredit) ~ moral, data = credit_agg, family = binomial(link = "logit"))
-cat_plot(fit_moral, pred = moral, data = credit_agg, outcome.scale = "link", geom = "line", y.label = "Logit")
+p_moral <- cat_plot(fit_moral, pred = moral, data = credit_agg, outcome.scale = "link", geom = "line", y.label = "Logit")
+ggsave("output/figures/eda_catplot_moral.png", plot = p_moral, width = 6, height = 4, dpi = 300)
 
 fit_laufkont <- glm(cbind(kredit, no_kredit) ~ laufkont, data = credit_agg, family = binomial(link = "logit"))
-cat_plot(fit_laufkont, pred = laufkont, data = credit_agg, outcome.scale = "link", geom = "line", y.label = "Logit")
+p_laufkont <- cat_plot(fit_laufkont, pred = laufkont, data = credit_agg, outcome.scale = "link", geom = "line", y.label = "Logit")
+ggsave("output/figures/eda_catplot_laufkont.png", plot = p_laufkont, width = 6, height = 4, dpi = 300)
 
 fit_beruf <- glm(cbind(kredit, no_kredit) ~ beruf, data = credit_agg, family = binomial(link = "logit"))
-cat_plot(fit_beruf, pred = beruf, data = credit_agg, outcome.scale = "link", geom = "line", y.label = "Logit")
+p_beruf <- cat_plot(fit_beruf, pred = beruf, data = credit_agg, outcome.scale = "link", geom = "line", y.label = "Logit")
+ggsave("output/figures/eda_catplot_beruf.png", plot = p_beruf, width = 6, height = 4, dpi = 300)
 
-# 5.2 Quantitative variables & 5.3 Functional form assessment
-# Functional form assessment via GAMs: An estimated degree of freedom (edf) 
-# close to 1 supports a linear specification, whereas an edf significantly > 1 
-# provides an indication of potential non-linearity (though not a formal proof).
+# Interpretation of the categorical plots:
+# - 'laufkont' shows a very clear, almost linear upward trend (better account status -> higher repayment odds).
+# - 'moral' generally trends upwards but with slight non-monotonic jumps.
+# - 'beruf' shows no clear directional trend, and the estimate for level 1 is highly uncertain 
+#   due to the sparse data identified above.
+
+# Clean up temporary GLM fits
+rm(fit_moral, fit_laufkont, fit_beruf)
+
+
+# 5.2 Continuous Variables (Quantitative) & Functional Form Assessment
+# For continuous covariates (alter, laufzeit), we must verify if they have a 
+# strictly linear relationship with the log-odds, or if they require transformation.
+# We use Generalized Additive Models (GAMs) with smoothing splines s() to estimate
+# the true, data-driven shape of the effect. 
+# 
+# Interpretation of the 'gam' package summary:
+# We look at the "Anova for Nonparametric Effects" table.
+# - The test statistic 'P(Chi)' tells us if the non-linear part of the spline is 
+#   statistically significant. 
+# - If significant (p < 0.05), a strictly linear term is insufficient. The variable 
+#   should be transformed (e.g., using polynomials) or discretized before entering the GLM.
+
+# Assess 'alter' (Age)
 gam_alter <- gam(
   cbind(kredit, no_kredit) ~ s(alter),
   data = credit_agg,
@@ -110,7 +137,14 @@ plot(gam_alter, se = TRUE, main = "Smooth term for alter")
 dev.off()
 
 summary(gam_alter)
+# Interpretation for 'alter':
+# The plot shows a somewhat non-linear, cubic trend (risk increases until mid-30s, 
+# then plateaus). However, the nonparametric test yields P(Chi) = 0.1095. Since this 
+# is > 0.05, the non-linear deviation is not strictly significant. If we were to force 
+# 'alter' into the final model, testing a discretized version (e.g., age groups) or a 
+# polynomial might be required, but a linear baseline test is acceptable.
 
+# Assess 'laufzeit' (Duration)
 gam_laufzeit <- gam(
   cbind(kredit, no_kredit) ~ s(laufzeit),
   data = credit_agg,
@@ -122,9 +156,67 @@ plot(gam_laufzeit, se = TRUE, main = "Smooth term for laufzeit")
 dev.off()
 
 summary(gam_laufzeit)
+# Interpretation for 'laufzeit':
+# The plot exhibits a very clear, strictly linear downward trend. The nonparametric 
+# test confirms this with P(Chi) = 0.3467 (no significant non-linear effect). 
+# This confirms that 'laufzeit' can be safely included as a standard linear main 
+# effect in the logistic regression model.
 
-# Clean environment before formal selection
-rm(fit_moral, fit_laufkont, fit_beruf, gam_alter, gam_laufzeit)
+# Clean up temporary GAM fits
+rm(gam_alter, gam_laufzeit)
+
+# 5.3 Exploratory Data Analysis for Interaction Effects
+# Objective: Check empirical logit plots for non-parallel trends to assess 
+# the need for interaction terms. Instead of all 10 combinations, we analyze 
+# the strongest main effects ('moral' and 'laufkont') interacting with 'laufzeit'.
+
+# Calculate empirical logits with continuity correction to avoid log(0)
+credit_agg$emp_logit <- log((credit_agg$kredit + 0.5) / (credit_agg$no_kredit + 0.5))
+
+# Plot 1: Laufzeit vs. Moral
+p_inter_laufzeit_moral <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit, color = moral)) +
+  geom_point(alpha = 0.3, size = 1) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.9, linewidth = 1.2) +
+  facet_wrap(~ moral) +
+  theme_light() +
+  labs(
+    title = "Interaction Check: Laufzeit vs. Empirical Logits by Moral",
+    x = "Duration in Months (laufzeit)",
+    y = "Empirical Logit"
+  ) +
+  theme(legend.position = "none")
+
+ggsave("output/figures/eda_interaction_laufzeit_moral.png", plot = p_inter_laufzeit_moral, width = 10, height = 6, dpi = 300)
+
+# Interpretation (Moral):
+# - Categories 2 and 4 cover the vast majority of data (82.3%) and show roughly parallel downward trends.
+# - Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance.
+# - Conclusion: Core population exhibits parallel trends; an additive main-effects framework is justified.
+
+
+# Plot 2: Laufzeit vs. Laufkont
+p_inter_laufzeit_laufkont <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit, color = laufkont)) +
+  geom_point(alpha = 0.3, size = 1) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.9, linewidth = 1.2) +
+  facet_wrap(~ laufkont) +
+  theme_light() +
+  labs(
+    title = "Interaction Check: Laufzeit vs. Empirical Logits by Laufkont",
+    x = "Duration in Months (laufzeit)",
+    y = "Empirical Logit"
+  ) +
+  theme(legend.position = "none")
+
+ggsave("output/figures/eda_interaction_laufzeit_laufkont.png", plot = p_inter_laufzeit_laufkont, width = 10, height = 6, dpi = 300)
+
+# Interpretation (Laufkont):
+# - Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented.
+# - Minor non-parallelisms (e.g., category 4 plateau between 20-30 months) trace back to boundary smoothing effects and sparse data.
+# - Conclusion: No systemic interaction pattern across main groups; an additive model prevents overfitting.
+
+# Clean up
+credit_agg$emp_logit <- NULL
+
 
 # 6. Model Specification -------------------------------------------------------
 
@@ -152,50 +244,70 @@ model_full <- glm(
   family = binomial(link = "logit")
 )
 
-# 6.4 Forward selection
-model_stepwise <- step(
+# 6.4 Forward selection (AIC)
+model_stepwise_aic <- step(
   object = model_baseline, 
   direction = "forward", 
   scope = formula(model_full), 
   trace = 0
 )
 
-# Extract the final model selected by the step function
-model_main <- model_stepwise
+# 6.5 Forward selection (BIC) through setting k = log(n)
+n_obs <- nrow(credit_agg)
+
+model_stepwise_bic <- step(
+  object = model_baseline, 
+  direction = "forward", 
+  scope = formula(model_full), 
+  k = log(n_obs),
+  trace = 0
+)
+
+# 6.6 Compare model complexity using both AIC and BIC
+comparison_table <- data.frame(
+  Model = c("Null", "Baseline", "AIC-selected", "BIC-selected", "Full"),
+  AIC = c(AIC(model_null), AIC(model_baseline), AIC(model_stepwise_aic), AIC(model_stepwise_bic), AIC(model_full)),
+  BIC = c(BIC(model_null), BIC(model_baseline), BIC(model_stepwise_aic), BIC(model_stepwise_bic), BIC(model_full))
+)
+print(comparison_table)
+#Interpretation: model_stepwise_aic and model_stepwise_bic have same AIC and BIC and are thus equal
+
+write.csv(
+  comparison_table,
+  "output/tables/model_comparison_aic_bic.csv",
+  row.names = FALSE
+)
+
+# 7. Final model ---------------------------------------------------------------
+# Extract the final mode. We proceed with BIC-selected model, since it is in general spareser than the AIC-selected model and thus easier to interpret.
+model_main <- model_stepwise_bic #Covariates: Moral, Laufkont and Laufzeit - Alter and Beruf are excluded
 saveRDS(
   model_main,
   "output/model_main.rds"
 )
 
-# 7. Final model ---------------------------------------------------------------
-
 # Compare nested models using likelihood-ratio tests
-anova(model_null, model_baseline, test = "Chisq") # Does moral add information?
-anova(model_baseline, model_main, test = "Chisq") # Do added variables improve fit?
-anova(model_main, model_full, test = "Chisq")     # Does the full model improve fit over the selected one?
+anova(model_null, model_baseline, test = "Chisq") # Does moral add information? Answer: yes, with p-value of 1.254e-08
+anova(model_baseline, model_main, test = "Chisq") # Do added variables improve fit? Answer: yes, with p-value of 3.023e-16
 
-# Compare model complexity using AIC
-aic_table <- AIC(
-  model_null,
-  model_baseline,
-  model_main,
-  model_full
+model_add_alter <- glm(
+  cbind(kredit, no_kredit) ~ moral + laufkont + laufzeit + alter, 
+  data = credit_agg, 
+  family = binomial(link = "logit")
 )
 
-print(aic_table)
-
-write.csv(
-  aic_table,
-  "output/tables/model_comparison_aic.csv",
-  row.names = FALSE
+model_add_beruf <- glm(
+  cbind(kredit, no_kredit) ~ moral + laufkont + laufzeit + beruf, 
+  data = credit_agg, 
+  family = binomial(link = "logit")
 )
-# Forward selection drops 'beruf', as its inclusion does not improve model fit 
-# enough to justify the added complexity (AIC penalty).
 
-# 7.1 Summary
+anova(model_main, model_add_alter, test = "Chisq") # Does 'alter' individually improve fit? Answer: no, with p-value of 0.2484
+anova(model_main, model_add_beruf, test = "Chisq") # Does 'beruf' individually improve fit? Answer: no, with p-value of 0.7575
+
 summary(model_main)
 
-# 7.2 Model Parameters (Coefficients, Odds Ratios, Confidence Intervals)
+# 7.3 Model Parameters (Coefficients, Odds Ratios, Confidence Intervals)
 or_table <- data.frame(
   term = names(coef(model_main)),
   estimate = coef(model_main),
@@ -209,6 +321,7 @@ write.csv(
   "output/tables/odds_ratios.csv",
   row.names = FALSE
 )
+
 # Odds ratios > 1 indicate higher odds of repayment (kredit = 1),
 # whereas odds ratios < 1 indicate lower odds of repayment (higher risk).
 # For factor variables, odds ratios are interpreted relative

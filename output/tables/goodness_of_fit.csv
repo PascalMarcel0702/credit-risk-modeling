@@ -2,4 +2,6 @@
 "Residual Deviance",693.845564994982
 "Degrees of Freedom",645
 "Critical Chi-sq Value",705.192490935464
-"p-value",0.0892266733617706
+"p-value (Deviance)",0.0892266733617706
+"Pearson Chi-Square",647.12334621758
+"Dispersion Parameter (sigma^2)",1.00329200963966

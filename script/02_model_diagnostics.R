@@ -33,24 +33,38 @@ ggsave("output/figures/partial_residual_laufzeit.png", plot = p_laufzeit, width 
 # supporting a linear specification for 'laufzeit' in the logit model.
 
 
-# 2. Goodness-of-Fit Assessment (Residual Deviance Test) -----------------------
+# 2. Goodness-of-Fit Assessment & Dispersion Check -----------------------------
+
+# 2.1 Residual Deviance Test (Asymptotic global fit)
 dev <- deviance(model_main)
 df_res <- df.residual(model_main)
 crit_val <- qchisq(0.95, df = df_res)
 gof_p <- pchisq(dev, df = df_res, lower.tail = FALSE)
 
+# 2.2 Pearson Chi-Square Dispersion Check (Heterogeneity Factor)
+pearson_residuals <- residuals(model_main, type = "pearson")
+pearson_chi2 <- sum(pearson_residuals^2)
+dispersion_param <- pearson_chi2 / df_res
+
+# Print results to console
+cat("--- Goodness-of-Fit & Dispersion ---\n")
 cat("Residual Deviance:", dev, "\nDegrees of Freedom:", df_res, 
     "\nCritical Chi-sq Value:", crit_val, "\nGoodness-of-Fit p-value:", gof_p, "\n")
+cat("Pearson Chi-Square:", pearson_chi2, 
+    "\nEstimated Dispersion Parameter (sigma^2):", dispersion_param, "\n\n")
 
-# Save GoF metrics to the tables directory
+# Save combined GoF metrics to the tables directory
 gof_results <- data.frame(
-  Metric = c("Residual Deviance", "Degrees of Freedom", "Critical Chi-sq Value", "p-value"),
-  Value = c(dev, df_res, crit_val, gof_p)
+  Metric = c("Residual Deviance", "Degrees of Freedom", "Critical Chi-sq Value", 
+             "p-value (Deviance)", "Pearson Chi-Square", "Dispersion Parameter (sigma^2)"),
+  Value = c(dev, df_res, crit_val, gof_p, pearson_chi2, dispersion_param)
 )
 write.csv(gof_results, "output/tables/goodness_of_fit.csv", row.names = FALSE)
-# Conclusion: Since dev < crit_val (and p-value > 0.05), there is no evidence of 
-# lack of fit or severe overdispersion based on the residual deviance.
 
+# Conclusion: 
+# 1. Since dev < crit_val (and p-value > 0.05), there is no evidence of lack of fit.
+# 2. A dispersion parameter (sigma^2) close to 1 indicates that the observed variance 
+#    matches the theoretical binomial variance, formally ruling out severe overdispersion.
 
 # 3. Residual Analysis (Pearson, Deviance, Adjusted) ---------------------------
 leverage <- hatvalues(model_main)
