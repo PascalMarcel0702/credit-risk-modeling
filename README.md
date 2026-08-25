@@ -16,6 +16,22 @@ The model uses the following predictors:
 | `alter` | Borrower age in years | Numeric |
 | `beruf` | Occupation | Categorical |
 
+The categorical variables show substantial differences in category frequencies:
+
+| Variable | Category 0 | Category 1 | Category 2 | Category 3 | Category 4 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `moral` | 4.0% | 4.9% | 53.0% | 8.8% | 29.3% |
+| `laufkont` | - | 27.4% | 26.9% | 6.3% | 39.4% |
+| `beruf` | - | 2.2% | 20.0% | 63.0% | 14.8% |
+
+The categorical predictors are unevenly distributed, with particularly sparse groups in `moral` and `beruf`. These differences in category frequency are considered when interpreting uncertainty and apparent deviations in the subsequent EDA.
+The continuous predictors are summarized using basic descriptive statistics:
+
+| Variable | Min | Median | Mean | SD | Max |
+|:---------|----:|-------:|-----:|----:|----:|
+| `laufzeit` | 4 | 18 | 20.9 | 12.1 | 72 |
+| `alter` | 19 | 33 | 35.5 | 11.4 | 75 |
+
 The target variable is:
 
 | Variable | Description | Coding |
@@ -24,7 +40,7 @@ The target variable is:
 
 Accordingly, `kredit = 1` represents the non-default class, while `kredit = 0` represents the default class throughout this project.
 
-## Key Results
+### Key Results
 
 | Aspect | Result |
 |---|---|
@@ -69,7 +85,65 @@ With the aggregated binomial data structure $Y_j \sim \text{Binomial}(n_j, \pi_j
 
 $$ \ell(\boldsymbol{\beta}) = \sum_{j=1}^{J} \left[ Y_j \log(\pi_j) + (n_j - Y_j) \log(1 - \pi_j) \right] $$
 
-### Model Selection
+---
+
+## Exploratory Data Analysis & Functional Form Assessment
+Before model selection, an exploratory analysis was conducted to assess category sparsity, functional forms of continuous predictors, and potential interaction effects.
+
+#### Categorical Predictors
+Marginal-effect plots on the log-odds scale were used to assess the functional relationships of the categorical predictors.
+<p align="center">
+  <img src="output/figures/eda_catplot_beruf.png" width="32%">
+  <img src="output/figures/eda_catplot_laufkont.png" width="32%">
+  <img src="output/figures/eda_catplot_moral.png" width="32%">
+</p>
+
+**Figure:** Marginal effects of the categorical predictors. `laufkont` shows a clear, approximately linear upward trend, indicating higher repayment odds for better account statuses. `moral` exhibits an overall upward trend with minor non-monotonic deviations, while `beruf` shows no clear directional pattern.
+
+Given the sparse representation of several categories, particularly `beruf` category 1, deviations at the boundaries should be interpreted cautiously as they are associated with substantially higher estimation uncertainty. The three regarded covariates are therefore specified as linear main effects.
+
+#### Continuous Predictors
+
+The functional form of the continuous predictors was assessed using Generalized Additive Models (GAMs) with smoothing splines. The non-parametric ANOVA test evaluates whether the flexible GAM provides significant evidence of deviation from a linear relationship. The reported `P(Chi)` is the corresponding p-value.
+
+| Predictor      | GAM assessment                      | `P(Chi)` | Decision             |
+| :------------- | :---------------------------------- | :------: | :------------------- |
+| **`alter`**    | Mildly non-linear visual pattern    |   0.110  | Linear term retained |
+| **`laufzeit`** | Approximately linear downward trend |   0.347  | Linear term retained |
+
+<p align="center">
+  <img src="output/figures/gam_alter.png" width="48%">
+  <img src="output/figures/gam_laufzeit.png" width="48%">
+</p>
+**Figure:** GAM smooths for `alter` and `laufzeit`. The estimated relationships do not provide statistically significant evidence for non-linearity.
+
+With $\alpha = 0.05$, neither predictor shows statistically significant evidence of non-linearity. Both are therefore specified as linear main effects.
+
+#### Interaction Diagnostics
+Potential interactions were assessed using empirical logit plots with a continuity correction[cite: 1]:
+
+$$
+\text{Empirical Logit}_i = \ln\left(\frac{y_i + 0.5}{n_i-y_i+0.5}\right)
+$$
+
+For both `laufzeit` × `moral` and `laufzeit` × `laufkont`, the dominant categories exhibit approximately parallel downward trends. Apparent deviations in sparse categories and at higher values of `laufzeit` are attributable primarily to limited observations and boundary effects of the smoother rather than to a systematic interaction pattern. Consequently, there is no strong empirical evidence for interaction terms.
+
+#### Specification Decision
+The EDA supports a parsimonious additive main-effects specification:
+
+* `laufzeit` as a linear predictor
+* `alter` as a linear predictor
+* `moral`, `laufkont`, and `beruf` as categorical predictors
+* No non-linear transformations
+* No interaction terms
+
+The EDA therefore defines the candidate model specification for the subsequent variable-selection procedure.
+
+---
+
+## Model Selection and Comparison
+
+### AIC and BIC
 Candidate variables are evaluated sequentially using both the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC). Both criteria balance model fit against complexity, with BIC applying a stricter penalty for the number of estimated parameters ($k$) based on the sample size ($n = 654$):
 
 $$\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k$$
@@ -83,7 +157,7 @@ Categorical predictors are represented using indicator variables relative to the
 
 The candidate variables `beruf` and `alter` were excluded in both the AIC- and BIC-selected models, as their inclusion failed to improve the likelihood sufficiently to overcome either complexity penalty. This unanimous selection underscores the robustness of the retained predictors and their significant informational contribution to the model.
 
-### Model Comparison
+### Likelihood-Ration Tests
 Nested models are additionally compared using sequential likelihood-ratio tests (implemented via Analysis of Deviance). In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
 
 $$G^2 = D_{\text{reduced}} - D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) - \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]$$
