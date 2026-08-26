@@ -17,7 +17,6 @@ dir.create("output/tables", recursive = TRUE, showWarnings = FALSE)
 
 # 2. Data Import & Inspection --------------------------------------------------
 credit <- read.table(file = "data/credit.txt", header = TRUE, sep = "")
-
 str(credit)
 summary(credit)
 
@@ -80,6 +79,15 @@ stopifnot(all(credit_agg$kredit >= 0), all(credit_agg$no_kredit >= 0))
 # Export aggregated training dataset for subsequent diagnostic steps
 saveRDS(credit_agg, "output/credit_agg.rds")
 
+# Pre-Check: Design Matrix Rank for Algorithmic Stability
+# Create the full design matrix for all candidate variables
+X_candidate <- model.matrix(~ laufzeit + moral + laufkont + alter + beruf, data = credit_agg)
+# Calculating rank using QR decomposition
+qr(X_candidate)$rank
+# Calculating number of parameters
+ncol(X_candidate)
+
+#Interpretation: Rank is equal to number of parameters, i.e., full rank.
 # 5. Exploratory Data Analysis (EDA) -------------------------------------------
 
 # 5.1 Categorical Variables (Qualitative)
