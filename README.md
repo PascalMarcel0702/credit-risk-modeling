@@ -202,44 +202,52 @@ The strict BIC penalty offsets the marginal deviance reduction of the interactio
 
 ## Model Diagnostics
 
-### Functional Form
-**Question:** Is `laufzeit` adequately modeled as a linear predictor?
+### Functional Form Assessment
+**Question:** Is the continuous predictor `laufzeit` adequately modeled as a linear main effect?
 
-![Partial residual plot](output/figures/partial_residual_laufzeit.png)
+<p align="center">
+  <img src="output/figures/partial_residual_laufzeit.png" width="70%" alt="Partial Residual Plot: laufzeit">
+</p>
 
-**Method:** Partial residual analysis with LOESS.
+*   **Method:** Partial residual analysis. Note that `laufzeit` is the only continuous covariate in the final specification, therefore its functional form can be isolated to check for non-linearity. The partial residuals are plotted against the predictor values $x_{ij}$. Algebraically, they are given as:
 
-**Evidence:** No pronounced systematic curvature is visible.
+$$e_i^{Y|X_{-j}} := \frac{y_i - n_i\hat{p}_i}{n_i\hat{p}_i(1-\hat{p}_i)} + \hat{\beta}_j x_{ij}$$
 
-**Interpretation:** The plot provides no strong graphical evidence of systematic nonlinearity in the effect of `laufzeit` on the logit scale.
+*   **Evidence:** A LOESS smoothing curve applied to the partial residuals follows an approximately horizontal, straight path across the duration spectrum. 
+*   **Interpretation:** The plot provides no evidence of systematic non-linearity. The linear approximation holds completely.
+*   **Decision:** Retain `laufzeit` strictly as a linear predictor. No non-linear transformations are required.
 
-**Decision:** Retain `laufzeit` as a linear predictor.
+### Goodness-of-Fit & Dispersion Check
+**Question:** Does the model adequately describe the grouped data, and is the structural assumption of equidispersion satisfied?
 
-### Goodness-of-Fit
-**Question:** Does the model adequately describe the grouped data?
+**Method:** Residual deviance test and Pearson heterogeneity check. The residual deviance is evaluated against its asymptotic $\chi^2_{n-p}$ reference distribution. To assess potential overdispersion, the Pearson heterogeneity factor is calculated as: 
 
-**Method:** Residual deviance test.
+$$\frac{e_i^P}{\sqrt{1 - h_{ii}^L}}$$
 
-**Evidence:** The residual deviance is compared with its asymptotic $\chi^2_{df}$ reference distribution.
+**Evidence:** 
+* **Global Fit:** Residual deviance = 693.85 on 645 degrees of freedom. This value is below the 95% critical threshold of 705.19, yielding a p-value of 0.089.
+* **Dispersion:** The Pearson $\chi^2$ statistic is 647.12, resulting in an estimated dispersion parameter (heterogeneity factor) of $\hat{\sigma}^2 \approx 1.003$.
 
-**Result:** Residual deviance = 693.8, df = 645, p = 0.089.
+**Interpretation:** 
+* The residual deviance does not provide statistically significant evidence of lack of fit at the 5% level.
+* Aggregated binomial profiles can sometimes exhibit variance greater than the theoretical binomial variance $np(1-p)$ due to unobserved heterogeneity, which would necessitate mixed models such as Beta-Binomial regression[cite: 3]. However, the estimated heterogeneity factor ($\hat{\sigma}^2 \approx 1.003$) is exceedingly close to 1. This formally indicates that the observed variance matches the theoretical binomial variance perfectly, ruling out severe overdispersion.
 
-**Interpretation:** The residual deviance does not provide statistically significant evidence of lack of fit at the 5% level.
+**Decision:** Retain the standard Binomial GLM specification. There is no evidence of lack of fit, and the confirmed absence of overdispersion makes more complex mixed models unnecessary.
 
-**Decision:** No evidence of lack of fit; retain the specification.
+### Residual Structure & Link Function Assessment
+**Question:** Are there systematic residual patterns indicating a misspecification of the link function or the linear predictors?
 
-### Residual Structure
-**Question:** Are there systematic residual patterns indicating model misspecification?
+<p align="center">
+  <img src="output/figures/residuals_adjusted.png" width="70%" alt="Adjusted Pearson Residuals">
+</p>
 
-![Adjusted Pearson residuals](output/figures/residuals_adjusted.png)
+*   **Method:** Residual analysis plotting residuals against fitted probabilities. While raw Pearson and deviance residuals evaluate general appropriateness, they structurally lack unit variances. To assess constant variance and prevent masking by high-leverage points, leverage-adjusted Pearson residuals are strictly required. They are given by the following formula:
 
-**Method:** Leverage-adjusted Pearson residuals.
+$$e_i^a := e_i^P / \sqrt{1 - h_{ii}^L}$$
 
-**Evidence:** Residuals fluctuate around zero without pronounced systematic patterns or clusters of extreme observations.
-
-**Interpretation:** The residual structure provides no obvious evidence of systematic misspecification.
-
-**Decision:** No evidence requiring a change in model specification.
+*   **Evidence:** The leverage-adjusted residuals fluctuate symmetrically around zero. The LOESS smoothing curve remains flat across the entire predicted probability spectrum, with only negligible boundary artifacts typical for non-parametric smoothing.
+*   **Interpretation:** The absence of severe non-linear patterns (e.g., U-shapes) firmly confirms the structural appropriateness of the model. The constant variance across the stabilized residuals mathematically verifies the correct specification of the logit link function.
+*   **Decision:** Retain the current model specification. No evidence of systematic lack of fit.
 
 ### Influence Diagnostics
 **Question:** Do individual covariate profiles exert disproportionate influence on the fitted model?
