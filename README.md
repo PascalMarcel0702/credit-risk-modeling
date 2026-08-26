@@ -1,8 +1,3 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
 # Credit Risk Modeling and Classification
 
 This project develops an interpretable logistic regression model for credit risk prediction. The model estimates borrower-specific probabilities of repayment and thereby supports credit-risk differentiation rather than relying solely on binary classification. The workflow combines binomial GLMs, functional-form assessment, likelihood-based model selection, residual and influence diagnostics, and out-of-sample validation.
@@ -66,7 +61,7 @@ The choice of a standard binomial logistic regression is grounded in the structu
 
 *   **Probability Constraints:** The dependent variable is binary. Standard linear regression cannot constrain predicted values to the $[0, 1]$ interval. The logit link function naturally maps the unbounded linear predictor $\eta_i \in \mathbb{R}$ to valid conditional probabilities.
 *   **Interpretability (Canonical Link):** While other cumulative distribution functions (e.g., Probit or Complementary log-log) could restrict predictions to valid probabilities, the logit link is the canonical link for the binomial distribution. It uniquely allows coefficients to be exponentiated into odds ratios, which is crucial for transparent risk differentiation in credit portfolios.
-*   **Absence of Overdispersion:** Aggregated binomial profiles often exhibit variance greater than the theoretical binomial variance $np(1-p)$ due to unobserved heterogeneity, which would necessitate mixed models (e.g., Beta-Binomial regression). However, the diagnostic evaluation yielded a Pearson heterogeneity factor ($\hat{\sigma}^2$) close to 1. This indicates no severe overdispersion, confirming that the standard Binomial GLM is adequate and more complex models are not required.
+*   **Algorithmic Stability (Concave Log-Likelihood):** The log-likelihood function of the binomial logistic regression model is strictly concave, provided the design matrix has full column rank. This mathematical property guarantees a unique global maximum during parameter estimation, which is essential for computationally robust risk scoring. A pre-estimation rank check of the full candidate design matrix confirmed full column rank ($rank = p = 13$), assuring the absence of perfect multicollinearity and guaranteeing the stability of the optimization algorithm.
 
 ### Data Aggregation
 To prevent data leakage during model evaluation, identical covariate profiles within the training set are aggregated into grouped binomial observations:
@@ -96,7 +91,7 @@ $$ \ell(\boldsymbol{\beta}) = \sum_{j=1}^{J} \left[ Y_j \log(\pi_j) + (n_j - Y_j
 Before model selection, an exploratory analysis was conducted to assess category sparsity, functional forms of continuous predictors, and potential interaction effects.
 
 #### Categorical Predictors
-Marginal-effect plots on the log-odds scale were used to assess the functional relationships of the categorical predictors.
+Univariate marginal-effect plots on the log-odds scale, derived from individual binomial GLM fits, were used to assess the functional relationships of the categorical predictors.
 <p align="center">
   <img src="output/figures/eda_catplot_beruf.png" width="32%">
   <img src="output/figures/eda_catplot_laufkont.png" width="32%">
@@ -131,37 +126,33 @@ $$
 \text{Empirical Logit}_i = \ln\left(\frac{y_i + 0.5}{n_i-y_i+0.5}\right)
 $$
 
-To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories.
+While non-parallel lines in such plots argue for the presence of interaction effects, they must always be considered together with their confidence bands to avoid misinterpreting random noise resulting from data sparsity.
+To ensure a robust visual interpretation, asymptotic 95% confidence limits were derived using the standard normal quantile ($z_{\alpha/2}$).
+The precision of each empirical logit depends on its asymptotic variance, calculated as:
+
+$$
+\widehat{Var}(\text{Empirical Logit}_i) = \frac{1}{y_i + 0.5} + \frac{1}{n_i - y_i + 0.5}
+$$
+
+These variances were used as inverse weights in a LOESS smoothing algorithm to generate the confidence bands for the continuous trend. To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories.
 
 *1. Interaction Check: Laufzeit vs. Moral*
 <p align="center">
   <img src="output/figures/eda_interaction_laufzeit_moral.png" width="70%" alt="Interaction Check: Laufzeit vs. Moral">
 </p>
 
-* Core Population: Categories 2 and 4 represent the vast majority of the data (82.3% combined). Both panels exhibit consistent, roughly parallel downward trends.
-* Sparse Categories: The erratic crossing patterns observed in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) are driven by data sparsity and high variance rather than systematic effects.
+* Categories 2 and 4 cover the vast majority of data (82.3%) and show roughly parallel downward trends with narrow confidence bands.
+* Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance. This is visually confirmed by their wide confidence bands.
+* Conclusion: The core population exhibits parallel trends and there is no strong evidence of non-parallelism in sparse groups. An additive main-effects framework is justified.
 
 *2. Interaction Check: Laufzeit vs. Laufkont*
 <p align="center">
   <img src="output/figures/eda_interaction_laufzeit_laufkont.png" width="70%" alt="Interaction Check: Laufzeit vs. Laufkont">
 </p>
 
-* Core Population: Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and generally follow a steady downward trend.
-* Sparse Categories: Minor non-parallelisms, such as the slight plateau in category 4 between 20 and 30 months, trace back to boundary effects of the non-parametric smoother as data density decreases at higher durations.
-
-**Conclusion**
-Since the dominant subgroups across both key variables exhibit parallel trajectories, there is no systemic interaction pattern. Apparent deviations are strictly isolated to sparse data regions. Therefore, proceeding with a parsimonious, additive main-effects model is methodologically sound and effectively prevents overfitting.
-
-#### Specification Decision
-The EDA supports a parsimonious additive main-effects specification:
-
-* `laufzeit` as a linear predictor
-* `alter` as a linear predictor
-* `moral`, `laufkont`, and `beruf` as categorical predictors
-* No non-linear transformations
-* No interaction terms
-
-The EDA therefore defines the candidate model specification for the subsequent variable-selection procedure.
+* Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and exhibit a generally parallel downward trend.
+*  Apparent deviations, such as the non-monotonic shape in the sparse category 3 (6.3%) or boundary fluctuations at higher durations, fall entirely within the wide 95% confidence bands.
+* Conclusion: No systemic interaction pattern across main groups within the margins; an additive model prevents overfitting.
 
 ---
 
@@ -181,7 +172,7 @@ Categorical predictors are represented using indicator variables relative to the
 
 The candidate variables `beruf` and `alter` were excluded in both the AIC- and BIC-selected models, as their inclusion failed to improve the likelihood sufficiently to overcome either complexity penalty. This unanimous selection underscores the robustness of the retained predictors and their significant informational contribution to the model.
 
-### Likelihood-Ration Tests
+### Likelihood-Ratio Tests
 Nested models are additionally compared using sequential likelihood-ratio tests (implemented via Analysis of Deviance). In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
 
 $$G^2 = D_{\text{reduced}} - D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) - \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]$$
@@ -191,65 +182,89 @@ Evaluated against a $\chi^2$ distribution, these partial deviance tests formally
 *   **Null vs. Baseline (`moral`):** Adding the baseline predictor `moral` provides a highly significant improvement over the intercept-only model ($p < 0.001$).
 *   **Baseline vs. Main (`moral`, `laufkont`, `laufzeit`):** The variables selected by AIC and BIC provide a further, highly significant improvement to the model fit ($p < 0.001$).
 *   **Marginal Additions (`alter`, `beruf`):** Adding either `alter` ($p = 0.248$) or `beruf` ($p = 0.758$) individually to the main model yields no significant reduction in residual deviance. This validates the decision of the AIC/BIC selection to exclude both predictors.
+*   **Interaction Effects (`moral` $\times$ `laufzeit`, `laufkont` $\times$ `laufzeit`):** Adding the interaction term `moral` $\times$ `laufzeit` improves model fit significantly ($p = 0.024$), while adding the interaction term `laufkont` $\times$ `laufzeit` yields no significant reduction ($p = 0.727$).
 
+#### Specification Decision
+Finally, the Main model was compared against the model additionally containing the significant interaction term `moral` $\times$ `laufzeit`. Since `moral` has 5 categories and `laufzeit` is continuous, 4 additional interaction parameters ($5 - 1 = 4$) need to be estimated. A comparison of the models using BIC, which strictly penalizes model complexity, yields:
+
+| Model | BIC |
+|:---------|----:|
+| Main | 770.92 | 
+| Interaction | 785.63 |
+
+The strict BIC penalty offsets the marginal deviance reduction of the interaction term. Therefore, the Main model without interaction effects is chosen to prevent overfitting. To sum up, the final model utilizes the following specification:
+
+* `laufzeit` as a linear continuous predictor
+* `moral` and `laufkont` as categorical predictors
+* No non-linear transformations
+* No interaction terms
 ---
 
 ## Model Diagnostics
 
-### Functional Form
-**Question:** Is `laufzeit` adequately modeled as a linear predictor?
+### Functional Form Assessment
+**Question:** Is the continuous predictor `laufzeit` adequately modeled as a linear main effect?
 
-![Partial residual plot](output/figures/partial_residual_laufzeit.png)
+<p align="center">
+  <img src="output/figures/partial_residual_laufzeit.png" width="70%" alt="Partial Residual Plot: laufzeit">
+</p>
 
-**Method:** Partial residual analysis with LOESS.
+*   **Method:** Partial residual analysis. Note that `laufzeit` is the only continuous covariate in the final specification, therefore its functional form can be isolated to check for non-linearity. The partial residuals are plotted against the predictor values $x_{ij}$. Algebraically, they are given as:
 
-**Evidence:** No pronounced systematic curvature is visible.
+$$e_i^{Y|X_{-j}} := \frac{y_i - n_i\hat{p}_i}{n_i\hat{p}_i(1-\hat{p}_i)} + \hat{\beta}_j x_{ij}$$
 
-**Interpretation:** The plot provides no strong graphical evidence of systematic nonlinearity in the effect of `laufzeit` on the logit scale.
+*   **Evidence:** A LOESS smoothing curve applied to the partial residuals follows an approximately horizontal, straight path across the duration spectrum. 
+*   **Interpretation:** The plot provides no evidence of systematic non-linearity. The linear approximation holds completely.
+*   **Decision:** Retain `laufzeit` strictly as a linear predictor. No non-linear transformations are required.
 
-**Decision:** Retain `laufzeit` as a linear predictor.
+### Goodness-of-Fit & Dispersion Check
+**Question:** Does the model adequately describe the grouped data, and is the structural assumption of equidispersion satisfied?
 
-### Goodness-of-Fit
-**Question:** Does the model adequately describe the grouped data?
+**Method:** Residual deviance test and Pearson heterogeneity check. The residual deviance is evaluated against its asymptotic $\chi^2_{n-p}$ reference distribution. To assess potential overdispersion, the Pearson heterogeneity factor is calculated as: 
 
-**Method:** Residual deviance test.
+$$\frac{e_i^P}{\sqrt{1 - h_{ii}^L}}$$
 
-**Evidence:** The residual deviance is compared with its asymptotic $\chi^2_{df}$ reference distribution.
+**Evidence:** 
+* **Global Fit:** Residual deviance = 693.85 on 645 degrees of freedom. This value is below the 95% critical threshold of 705.19, yielding a p-value of 0.089.
+* **Dispersion:** The Pearson $\chi^2$ statistic is 647.12, resulting in an estimated dispersion parameter (heterogeneity factor) of $\hat{\sigma}^2 \approx 1.003$.
 
-**Result:** Residual deviance = 693.8, df = 645, p = 0.089.
+**Interpretation:** 
+* The residual deviance does not provide statistically significant evidence of lack of fit at the 5% level.
+* Aggregated binomial profiles can sometimes exhibit variance greater than the theoretical binomial variance $np(1-p)$ due to unobserved heterogeneity, which would necessitate mixed models such as Beta-Binomial regression[cite: 3]. However, the estimated heterogeneity factor ($\hat{\sigma}^2 \approx 1.003$) is exceedingly close to 1. This formally indicates that the observed variance matches the theoretical binomial variance perfectly, ruling out severe overdispersion.
 
-**Interpretation:** The residual deviance does not provide statistically significant evidence of lack of fit at the 5% level.
+**Decision:** Retain the standard Binomial GLM specification. There is no evidence of lack of fit, and the confirmed absence of overdispersion makes more complex mixed models unnecessary.
 
-**Decision:** No evidence of lack of fit; retain the specification.
+### Residual Structure & Link Function Assessment
+**Question:** Are there systematic residual patterns indicating a misspecification of the link function or the linear predictors?
 
-### Residual Structure
-**Question:** Are there systematic residual patterns indicating model misspecification?
+<p align="center">
+  <img src="output/figures/residuals_adjusted.png" width="70%" alt="Adjusted Pearson Residuals">
+</p>
 
-![Adjusted Pearson residuals](output/figures/residuals_adjusted.png)
+*   **Method:** Residual analysis plotting residuals against fitted probabilities. While raw Pearson and deviance residuals evaluate general appropriateness, they structurally lack unit variances. To assess constant variance and prevent masking by high-leverage points, leverage-adjusted Pearson residuals are strictly required. They are given by the following formula:
 
-**Method:** Leverage-adjusted Pearson residuals.
+$$e_i^a := e_i^P / \sqrt{1 - h_{ii}^L}$$
 
-**Evidence:** Residuals fluctuate around zero without pronounced systematic patterns or clusters of extreme observations.
-
-**Interpretation:** The residual structure provides no obvious evidence of systematic misspecification.
-
-**Decision:** No evidence requiring a change in model specification.
+*   **Evidence:** The leverage-adjusted residuals fluctuate symmetrically around zero. The LOESS smoothing curve remains flat across the entire predicted probability spectrum, with only negligible boundary artifacts typical for non-parametric smoothing.
+*   **Interpretation:** The absence of severe non-linear patterns (e.g., U-shapes) firmly confirms the structural appropriateness of the model. The constant variance across the stabilized residuals mathematically verifies the correct specification of the logit link function.
+*   **Decision:** Retain the current model specification. No evidence of systematic lack of fit.
 
 ### Influence Diagnostics
-**Question:** Do individual covariate profiles exert disproportionate influence on the fitted model?
+**Question:** Do individual covariate profiles exert disproportionate influence on the estimated model parameters?
 
-![Leverage](output/figures/leverage_plot.png)
+<p align="center">
+  <img src="output/figures/residuals_vs_leverage_plot.png" width="45%" alt="Residuals vs Leverage">
+  <img src="output/figures/cooks_distance.png" width="45%" alt="Approximate Cook's Distance">
+</p>
 
-![Cook's Distance](output/figures/cooks_distance.png)
+*   **Method:** Leverage ($h_{ii}^L$) and Approximate Cook's Distance ($D_i^a$). Calculating the exact Cook's distance in logistic regression is computationally expensive as it requires iterative refitting. Therefore, the theoretically derived second-order Taylor expansion is computed manually as:
 
-**Method:** Leverage and Cook's Distance.
-
-**Evidence:** Some profiles exceed the leverage reference threshold $2p/n$, while Cook's distances remain small.
-
-**Interpretation:** Some profiles represent unusual predictor combinations, but none appears to exert disproportionate influence on the fitted coefficients.
-
-**Decision:** Retain all observations.
-
+$$D_i^a := (e_i^P)^2 \frac{h_{ii}^L}{(1-h_{ii}^L)^2}$$
+ 
+ This prevents the parameter-scaled ($p$) output typical for standard software functions and allows a direct evaluation against the absolute literature threshold of 1. Furthermore, a combined *Residuals vs. Leverage* plot is utilized to evaluate model fit and leverage simultaneously.
+*   **Evidence:** The reference threshold for high leverage is mathematically defined as $2p/n$. While several observations exceed this boundary, their adjusted Pearson residuals remain within a moderate range. Consequently, all approximate Cook's distances stay well below the critical threshold of 1 (maximum $\approx$ 0.4).
+*   **Interpretation:** Some aggregated profiles represent unusual predictor combinations, resulting in high leverage. However, since no observation exhibits simultaneously extreme leverage and an extreme residual, there are no highly influential data points distorting the model fit. The parameter estimates are robust.
+*   **Decision:** Retain all observations.
 ---
 
 ## Validation & Risk Interpretation
