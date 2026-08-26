@@ -250,20 +250,21 @@ $$e_i^a := e_i^P / \sqrt{1 - h_{ii}^L}$$
 *   **Decision:** Retain the current model specification. No evidence of systematic lack of fit.
 
 ### Influence Diagnostics
-**Question:** Do individual covariate profiles exert disproportionate influence on the fitted model?
+**Question:** Do individual covariate profiles exert disproportionate influence on the estimated model parameters?
 
-![Leverage](output/figures/leverage_plot.png)
+<p align="center">
+  <img src="output/figures/residuals_vs_leverage_plot.png" width="45%" alt="Residuals vs Leverage">
+  <img src="output/figures/cooks_distance.png" width="45%" alt="Approximate Cook's Distance">
+</p>
 
-![Cook's Distance](output/figures/cooks_distance.png)
+*   **Method:** Leverage ($h_{ii}^L$) and Approximate Cook's Distance ($D_i^a$). Calculating the exact Cook's distance in logistic regression is computationally expensive as it requires iterative refitting. Therefore, the theoretically derived second-order Taylor expansion is computed manually as:
 
-**Method:** Leverage and Cook's Distance.
-
-**Evidence:** Some profiles exceed the leverage reference threshold $2p/n$, while Cook's distances remain small.
-
-**Interpretation:** Some profiles represent unusual predictor combinations, but none appears to exert disproportionate influence on the fitted coefficients.
-
-**Decision:** Retain all observations.
-
+$$D_i^a := (e_i^P)^2 \frac{h_{ii}^L}{(1-h_{ii}^L)^2}$$
+ 
+ This prevents the parameter-scaled ($p$) output typical for standard software functions and allows a direct evaluation against the absolute literature threshold of 1. Furthermore, a combined *Residuals vs. Leverage* plot is utilized to evaluate model fit and leverage simultaneously.
+*   **Evidence:** The reference threshold for high leverage is mathematically defined as $2p/n$. While several observations exceed this boundary, their adjusted Pearson residuals remain within a moderate range. Consequently, all approximate Cook's distances stay well below the critical threshold of 1 (maximum $\approx$ 0.4).
+*   **Interpretation:** Some aggregated profiles represent unusual predictor combinations, resulting in high leverage. However, since no observation exhibits simultaneously extreme leverage and an extreme residual, there are no highly influential data points distorting the model fit. The parameter estimates are robust.
+*   **Decision:** Retain all observations.
 ---
 
 ## Validation & Risk Interpretation
