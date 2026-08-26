@@ -126,37 +126,33 @@ $$
 \text{Empirical Logit}_i = \ln\left(\frac{y_i + 0.5}{n_i-y_i+0.5}\right)
 $$
 
-To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories.
+While non-parallel lines in such plots argue for the presence of interaction effects, they must always be considered together with their confidence bands to avoid misinterpreting random noise resulting from data sparsity.
+To ensure a robust visual interpretation, asymptotic 95% confidence limits were derived using the standard normal quantile ($z_{\alpha/2}$).
+The precision of each empirical logit depends on its asymptotic variance, calculated via
+
+$$
+\widehat{Var}(\text{Empirical Logit}_i) = \frac{1}{y_i + 0.5} + \frac{1}{n_i - y_i + 0.5}
+$$
+
+These variances were used as inverse weights in a LOESS smoothing algorithm to generate the confidence bands for the continuous trend. To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories
 
 *1. Interaction Check: Laufzeit vs. Moral*
 <p align="center">
   <img src="output/figures/eda_interaction_laufzeit_moral.png" width="70%" alt="Interaction Check: Laufzeit vs. Moral">
 </p>
 
-* Core Population: Categories 2 and 4 represent the vast majority of the data (82.3% combined). Both panels exhibit consistent, roughly parallel downward trends.
-* Sparse Categories: The erratic crossing patterns observed in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) are driven by data sparsity and high variance rather than systematic effects.
+* Categories 2 and 4 cover the vast majority of data (82.3%) and show roughly parallel downward trends with narrow confidence bands.
+* Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance.This is visually confirmed by their wide confidence bands.
+* Conclusion: The core population exhibits parallel trends and there is no strong evidence of non-parallelism in sparse groups. An additive main-effects framework is justified.
 
 *2. Interaction Check: Laufzeit vs. Laufkont*
 <p align="center">
   <img src="output/figures/eda_interaction_laufzeit_laufkont.png" width="70%" alt="Interaction Check: Laufzeit vs. Laufkont">
 </p>
 
-* Core Population: Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and generally follow a steady downward trend.
-* Sparse Categories: Minor non-parallelisms, such as the slight plateau in category 4 between 20 and 30 months, trace back to boundary effects of the non-parametric smoother as data density decreases at higher durations.
-
-**Conclusion**
-Since the dominant subgroups across both key variables exhibit parallel trajectories, there is no systemic interaction pattern. Apparent deviations are strictly isolated to sparse data regions. Therefore, proceeding with a parsimonious, additive main-effects model is methodologically sound and effectively prevents overfitting.
-
-#### Specification Decision
-The EDA supports a parsimonious additive main-effects specification:
-
-* `laufzeit` as a linear predictor
-* `alter` as a linear predictor
-* `moral`, `laufkont`, and `beruf` as categorical predictors
-* No non-linear transformations
-* No interaction terms
-
-The EDA therefore defines the candidate model specification for the subsequent variable-selection procedure.
+* Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and exhibit a generally parallel downward trend.
+*  Apparent deviations, such as the non-monotonic shape in the sparse category 3 (6.3%) or boundary fluctuations at higher durations, fall entirely within the wide 95% confidence bands.
+* Conclusion: No systemic interaction pattern across main groups within the margins; an additive model prevents overfitting.
 
 ---
 
@@ -176,7 +172,7 @@ Categorical predictors are represented using indicator variables relative to the
 
 The candidate variables `beruf` and `alter` were excluded in both the AIC- and BIC-selected models, as their inclusion failed to improve the likelihood sufficiently to overcome either complexity penalty. This unanimous selection underscores the robustness of the retained predictors and their significant informational contribution to the model.
 
-### Likelihood-Ration Tests
+### Likelihood-Ratio Tests
 Nested models are additionally compared using sequential likelihood-ratio tests (implemented via Analysis of Deviance). In the context of GLMs, the test statistic $G^2$ is exactly equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
 
 $$G^2 = D_{\text{reduced}} - D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) - \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]$$
@@ -186,7 +182,22 @@ Evaluated against a $\chi^2$ distribution, these partial deviance tests formally
 *   **Null vs. Baseline (`moral`):** Adding the baseline predictor `moral` provides a highly significant improvement over the intercept-only model ($p < 0.001$).
 *   **Baseline vs. Main (`moral`, `laufkont`, `laufzeit`):** The variables selected by AIC and BIC provide a further, highly significant improvement to the model fit ($p < 0.001$).
 *   **Marginal Additions (`alter`, `beruf`):** Adding either `alter` ($p = 0.248$) or `beruf` ($p = 0.758$) individually to the main model yields no significant reduction in residual deviance. This validates the decision of the AIC/BIC selection to exclude both predictors.
+*   **Interaction Effects (`moral` $\times$ `laufzeit`, `laufkont` $\times$ `laufzeit`):** Adding the interaction term `moral` $\times$ `laufzeit` improves model fit significantly ($p = 0.024$), while adding the interaction term `laufkont` $\times$ `laufzeit` yields no significant reduction ($p = 0.727$).
 
+#### Specification Decision
+Finally, the Main model was compared against the model additionally containing the significant interaction term `moral` $\times$ `laufzeit`. Since `moral` has 5 categories and `laufzeit` is continuous, 4 additional interaction parameters ($5 - 1 = 4$) need to be estimated. A comparison of the models using BIC, which strictly penalizes model complexity, yields:
+
+| Model | BIC |
+|:---------|----:|
+| Main | 770.92 | 
+| Interaction | 785.63 |
+
+The strict BIC penalty offsets the marginal deviance reduction of the interaction term. Therefore, the Main model without interaction effects is chosen to prevent overfitting. To sum up, the final model utilizes the following specification:
+
+* `laufzeit` as a linear continuous predictor
+* `moral` and `laufkont` as categorical predictors
+* No non-linear transformations
+* No interaction terms
 ---
 
 ## Model Diagnostics
