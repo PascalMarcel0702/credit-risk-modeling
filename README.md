@@ -61,7 +61,7 @@ The choice of a standard binomial logistic regression is grounded in the structu
 
 *   **Probability Constraints:** The dependent variable is binary. Standard linear regression cannot constrain predicted values to the $[0, 1]$ interval. The logit link function naturally maps the unbounded linear predictor $\eta_i \in \mathbb{R}$ to valid conditional probabilities.
 *   **Interpretability (Canonical Link):** While other cumulative distribution functions (e.g., Probit or Complementary log-log) could restrict predictions to valid probabilities, the logit link is the canonical link for the binomial distribution. It uniquely allows coefficients to be exponentiated into odds ratios, which is crucial for transparent risk differentiation in credit portfolios.
-*   **Absence of Overdispersion:** Aggregated binomial profiles often exhibit variance greater than the theoretical binomial variance $np(1-p)$ due to unobserved heterogeneity, which would necessitate mixed models (e.g., Beta-Binomial regression). However, the diagnostic evaluation yielded a Pearson heterogeneity factor ($\hat{\sigma}^2$) close to 1. This indicates no severe overdispersion, confirming that the standard Binomial GLM is adequate and more complex models are not required.
+*   **Algorithmic Stability (Concave Log-Likelihood):** The log-likelihood function of the binomial logistic regression model is strictly concave, provided the design matrix has full column rank. This mathematical property guarantees a unique global maximum during parameter estimation, which is essential for computationally robust risk scoring. A pre-estimation rank check of the full candidate design matrix confirmed full column rank ($rank = p = 13$), assuring the absence of perfect multicollinearity and guaranteeing the stability of the optimization algorithm.
 
 ### Data Aggregation
 To prevent data leakage during model evaluation, identical covariate profiles within the training set are aggregated into grouped binomial observations:
@@ -91,7 +91,7 @@ $$ \ell(\boldsymbol{\beta}) = \sum_{j=1}^{J} \left[ Y_j \log(\pi_j) + (n_j - Y_j
 Before model selection, an exploratory analysis was conducted to assess category sparsity, functional forms of continuous predictors, and potential interaction effects.
 
 #### Categorical Predictors
-Marginal-effect plots on the log-odds scale were used to assess the functional relationships of the categorical predictors.
+Univariate marginal-effect plots on the log-odds scale, derived from individual binomial GLM fits, were used to assess the functional relationships of the categorical predictors.
 <p align="center">
   <img src="output/figures/eda_catplot_beruf.png" width="32%">
   <img src="output/figures/eda_catplot_laufkont.png" width="32%">
@@ -128,13 +128,13 @@ $$
 
 While non-parallel lines in such plots argue for the presence of interaction effects, they must always be considered together with their confidence bands to avoid misinterpreting random noise resulting from data sparsity.
 To ensure a robust visual interpretation, asymptotic 95% confidence limits were derived using the standard normal quantile ($z_{\alpha/2}$).
-The precision of each empirical logit depends on its asymptotic variance, calculated via
+The precision of each empirical logit depends on its asymptotic variance, calculated as:
 
 $$
 \widehat{Var}(\text{Empirical Logit}_i) = \frac{1}{y_i + 0.5} + \frac{1}{n_i - y_i + 0.5}
 $$
 
-These variances were used as inverse weights in a LOESS smoothing algorithm to generate the confidence bands for the continuous trend. To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories
+These variances were used as inverse weights in a LOESS smoothing algorithm to generate the confidence bands for the continuous trend. To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories.
 
 *1. Interaction Check: Laufzeit vs. Moral*
 <p align="center">
@@ -142,7 +142,7 @@ These variances were used as inverse weights in a LOESS smoothing algorithm to g
 </p>
 
 * Categories 2 and 4 cover the vast majority of data (82.3%) and show roughly parallel downward trends with narrow confidence bands.
-* Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance.This is visually confirmed by their wide confidence bands.
+* Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance. This is visually confirmed by their wide confidence bands.
 * Conclusion: The core population exhibits parallel trends and there is no strong evidence of non-parallelism in sparse groups. An additive main-effects framework is justified.
 
 *2. Interaction Check: Laufzeit vs. Laufkont*
