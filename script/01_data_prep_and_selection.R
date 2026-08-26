@@ -165,7 +165,7 @@ plot(gam_alter,
      ylab = "Partial Effect on Log-Odds",
      col = "#2c3e50",      # Modern dark slate blue
      lwd = 2.5            # Thicker line
-     )
+)
 
 summary(gam_alter)
 # Interpretation for 'alter':
@@ -208,12 +208,38 @@ rm(gam_alter, gam_laufzeit)
 # the strongest main effects ('moral' and 'laufkont') interacting with 'laufzeit'.
 
 # Calculate empirical logits with continuity correction to avoid log(0)
-credit_agg$emp_logit <- log((credit_agg$kredit + 0.5) / (credit_agg$no_kredit + 0.5))
+
+# 1. Calculate empirical logits, asymptotic variances, and confidence intervals
+z_value <- qnorm(0.975) # ~1.96 for 95% Confidence Interval
+
+credit_agg <- credit_agg %>%
+  mutate(
+    # Empirical logit with continuity correction
+    emp_logit = log((kredit + 0.5) / (no_kredit + 0.5)),
+    
+    # Asymptotic variance of empirical logit
+    var_emp_logit = (1 / (kredit + 0.5)) + (1 / (no_kredit + 0.5)),
+    se_emp_logit = sqrt(var_emp_logit),
+    
+    # 95% Confidence limits
+    ci_lower = emp_logit - z_value * se_emp_logit,
+    ci_upper = emp_logit + z_value * se_emp_logit,
+    
+    # Inverse variance weighting for precision-weighted LOESS smoothing
+    weight_loess = 1 / var_emp_logit
+  )
 
 # Plot 1: Laufzeit vs. Moral
-p_inter_laufzeit_moral <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit, color = moral)) +
-  geom_point(alpha = 0.3, size = 1) +
-  geom_smooth(method = "loess", se = FALSE, span = 0.9, linewidth = 1.2) +
+p_inter_laufzeit_moral <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit, color = moral, fill = moral)) +
+  # Add precision-weighted LOESS smoothing with 95% confidence bands (se = TRUE)
+  geom_smooth(
+    aes(weight = weight_loess), 
+    method = "loess", 
+    se = TRUE,             # Activates the confidence band for the trend
+    span = 0.9, 
+    linewidth = 1, 
+    alpha = 0.2            # Transparency of the confidence band
+  ) +
   facet_wrap(~ moral) +
   theme_light() +
   labs(
@@ -226,15 +252,22 @@ p_inter_laufzeit_moral <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit, co
 ggsave("output/figures/eda_interaction_laufzeit_moral.png", plot = p_inter_laufzeit_moral, width = 10, height = 6, dpi = 300)
 
 # Interpretation (Moral):
-# - Categories 2 and 4 cover the vast majority of data (82.3%) and show roughly parallel downward trends.
-# - Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance.
-# - Conclusion: Core population exhibits parallel trends; an additive main-effects framework is justified.
+# - Categories 2 and 4 cover the vast majority of data (82.3%) and show roughly parallel downward trends with narrow confidence bands.
+# - Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance.This is visually confirmed by their wide confidence bands.
+# - Conclusion: The core population exhibits parallel trends and there is no strong evidence of non-parallelism in sparse groups. An additive main-effects framework is justified.
 
 
 # Plot 2: Laufzeit vs. Laufkont
-p_inter_laufzeit_laufkont <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit, color = laufkont)) +
-  geom_point(alpha = 0.3, size = 1) +
-  geom_smooth(method = "loess", se = FALSE, span = 0.9, linewidth = 1.2) +
+p_inter_laufzeit_laufkont <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit, color = laufkont, fill = laufkont)) +
+  # Add precision-weighted LOESS smoothing with 95% confidence bands (se = TRUE)
+  geom_smooth(
+    aes(weight = weight_loess), 
+    method = "loess", 
+    se = TRUE,             # Activates the confidence band for the trend
+    span = 0.9, 
+    linewidth = 1, 
+    alpha = 0.2            # Transparency of the confidence band
+  ) +
   facet_wrap(~ laufkont) +
   theme_light() +
   labs(
@@ -247,12 +280,9 @@ p_inter_laufzeit_laufkont <- ggplot(credit_agg, aes(x = laufzeit, y = emp_logit,
 ggsave("output/figures/eda_interaction_laufzeit_laufkont.png", plot = p_inter_laufzeit_laufkont, width = 10, height = 6, dpi = 300)
 
 # Interpretation (Laufkont):
-# - Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented.
-# - Minor non-parallelisms (e.g., category 4 plateau between 20-30 months) trace back to boundary smoothing effects and sparse data.
-# - Conclusion: No systemic interaction pattern across main groups; an additive model prevents overfitting.
-
-# Clean up
-credit_agg$emp_logit <- NULL
+# - Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and exhibit a generally parallel downward trend.
+# - Apparent deviations, such as the non-monotonic shape in the sparse category 3 (6.3%) or boundary fluctuations at higher durations, fall entirely within the wide 95% confidence bands.
+# - Conclusion: No systemic interaction pattern across main groups within the margins; an additive model prevents overfitting.
 
 
 # 6. Model Specification -------------------------------------------------------
@@ -341,6 +371,30 @@ model_add_beruf <- glm(
 
 anova(model_main, model_add_alter, test = "Chisq") # Does 'alter' individually improve fit? Answer: no, with p-value of 0.2484
 anova(model_main, model_add_beruf, test = "Chisq") # Does 'beruf' individually improve fit? Answer: no, with p-value of 0.7575
+
+# Compare with interaction models
+model_inter_moral_laufzeit <- glm(
+  cbind(kredit, no_kredit) ~ moral + laufkont + laufzeit + laufzeit:moral, 
+  data = credit_agg, 
+  family = binomial(link = "logit"))
+
+model_inter_laufkont_laufzeit <- glm(
+  cbind(kredit, no_kredit) ~ moral + laufkont + laufzeit + laufzeit:laufkont,
+  data = credit_agg,
+  family = binomial(link = "logit"))
+
+anova(model_main, model_inter_moral_laufzeit, test = "Chisq" ) #Does interaction term laufzeit:moral individually improves the model? Answer: yes, with p-value of 0.02411
+
+anova(model_main, model_inter_laufkont_laufzeit, test = "Chisq" ) #Does interaction term laufzeit:laufkont individually improves the model? Answer: no, with p-value of 0.7274
+
+# Comparing BIC of model_main and model_inter_moral_laufzeit
+data.frame(Model = c('Main', 'Interaction'), BIC =
+             c(BIC(model_main), BIC(model_inter_moral_laufzeit))
+)
+#Interpretation: The model with covariates moral, laufkont, laufzeit fits better to the data, as the model that includes the interaction term laufzeit:moral, when taking model-complexity into account:
+#Model          BIC
+#1        Main  770.9221
+#2 Interaction  785.6259
 
 summary(model_main)
 
