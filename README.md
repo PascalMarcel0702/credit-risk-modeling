@@ -20,9 +20,9 @@ The categorical variables show substantial differences in category frequencies:
 
 | Variable | Category 0 | Category 1 | Category 2 | Category 3 | Category 4 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `moral` | 4.0% | 4.9% | 53.0% | 8.8% | 29.3% |
-| `laufkont` | - | 27.4% | 26.9% | 6.3% | 39.4% |
-| `beruf` | - | 2.2% | 20.0% | 63.0% | 14.8% |
+| `moral` | 5.0% | 3.8% | 52.6% | 8.5% | 29.8% |
+| `laufkont` | - | 27.1% | 27.0% | 6.1% | 39.6% |
+| `beruf` | - | 1.8% | 20.0% | 63.5% | 14.6% |
 
 The categorical predictors are unevenly distributed, with particularly sparse groups in `moral` and `beruf`. These differences in category frequency are considered when interpreting uncertainty and apparent deviations in the subsequent EDA.
 The continuous predictors are summarized using basic descriptive statistics:
