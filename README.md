@@ -16,7 +16,7 @@ The model uses the following predictors:
 | `alter` | Borrower age in years | Numeric |
 | `beruf` | Occupation | Categorical |
 
-The categorical variables show substantial differences in category frequencies:
+The observations are split into 700 training data, with 654 unique covariate profiles, and 300 test data. The categorical variables show substantial differences in category frequencies with respect to the training data:
 
 | Variable | Category 0 | Category 1 | Category 2 | Category 3 | Category 4 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -24,13 +24,13 @@ The categorical variables show substantial differences in category frequencies:
 | `laufkont` | - | 27.1% | 27.0% | 6.1% | 39.6% |
 | `beruf` | - | 1.8% | 20.0% | 63.5% | 14.6% |
 
-The categorical predictors are unevenly distributed, with particularly sparse groups in `moral` and `beruf`. These differences in category frequency are considered when interpreting uncertainty and apparent deviations in the subsequent EDA.
-The continuous predictors are summarized using basic descriptive statistics:
+The categorical predictors are unevenly distributed, with particularly sparse groups in `moral` and `beruf`. These differences in category frequency are considered when interpreting uncertainty and apparent deviations in the subsequent data analysis.
+The continuous predictors with respect to the training data are summarized using basic descriptive statistics:
 
 | Variable | Min | Median | Mean | SD | Max |
 |:---------|----:|-------:|-----:|----:|----:|
 | `laufzeit` | 4 | 18 | 20.9 | 12.1 | 72 |
-| `alter` | 19 | 33 | 35.5 | 11.4 | 75 |
+| `alter` | 19 | 33 | 35.4 | 11.3 | 74 |
 
 The target variable is:
 
