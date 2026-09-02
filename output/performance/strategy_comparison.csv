@@ -1,0 +1,5 @@
+"Strategy","Threshold","Expected Approval Rate","Wrongly predicted defaults","Netto-Profit","Profit Margine"
+"Cost minimization",0.874,"23.2 %",12,"9179.97","2.42 %"
+"Profit maximization",0.842,"32.3 %",21,"9420.07","1.64 %"
+"Break - Even",0.86,"26.6 %",16,"5086.49","1.09 %"
+"Market Share (Growth)",0.7,"57.7 %",68,"-45194.17","-4.20 %"

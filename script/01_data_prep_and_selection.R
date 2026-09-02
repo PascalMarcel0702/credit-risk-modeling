@@ -52,7 +52,7 @@ credit <- credit %>%
 # - dlaufzeit, dalter: Ordinal categorical (expert-discretized bins, see documentation)
 # - moral, laufkont, beruf: Ordinal categorical
 
-credit_candidate <- credit[, c("kredit", "laufzeit", "dlaufzeit", "moral", "laufkont", "alter", "dalter", "beruf")]
+credit_candidate <- credit[, c("kredit", "laufzeit", "dlaufzeit", "moral", "laufkont", "alter", "dalter", "beruf", "hoehe")]
 
 credit_candidate <- credit_candidate %>%
   mutate(no_kredit = 1 - kredit)

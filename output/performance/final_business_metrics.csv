@@ -1,0 +1,9 @@
+"Metric","Value"
+"AUC (Test)",0.8094
+"Sensitivity / TPR (Test)",0.4218
+"Specificity / TNR (Test)",0.9333
+"Precision / PPV (Test)",0.9368
+"Unweighted Error Rate (Test)",0.4252
+"Cost-Weighted Error (Test)",0.54
+"Expected Profit per Applicant (Train)",21.39
+"Expected Profit per Applicant (Test)",49.68
