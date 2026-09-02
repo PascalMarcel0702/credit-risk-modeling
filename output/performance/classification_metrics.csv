@@ -1,8 +1,8 @@
 "Metric","Value"
 "Test AUC",0.809373354397051
 "Train AUC",0.751144220469374
-"Test Accuracy",0.740863787375415
-"Test Error Rate",0.259136212624585
+"Test Accuracy",0.252491694352159
+"Test Error Rate",0.747508305647841
 "Train Error Rate",0.251788268955651
 "Test Brier Score",0.16099030492954
 "Train Brier Score",0.175008630777289

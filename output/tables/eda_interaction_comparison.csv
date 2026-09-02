@@ -1,0 +1,109 @@
+"Interaction","Category_Var1","Metric","<=6","7-12","13-18","19-24","25-30","31-36","37-42","43-48","49-54",">54",">36"
+"Moral vs Duration (dlaufzeit)","0","Empir. logits",1.61,-0.59,-1.1,-1.95,0,-0.51,1.1,-1.47,0,,
+"Moral vs Duration (dlaufzeit)","1","Empir. logits",-1.61,-0.34,0,-0.2,-1.1,,,0.85,,,
+"Moral vs Duration (dlaufzeit)","2","Empir. logits",1.77,1,0.81,0.89,0.48,0.42,0.51,-0.57,,-0.59,
+"Moral vs Duration (dlaufzeit)","3","Empir. logits",0.51,1.1,0.25,0.8,0.59,-0.31,1.1,1.95,,0.51,
+"Moral vs Duration (dlaufzeit)","4","Empir. logits",2.71,1.87,1.29,1.56,1.34,0.48,2.2,-0.45,,1.1,
+"Moral vs Duration (dlaufzeit)","0","n",2,6,5,3,6,3,1,7,2,,
+"Moral vs Duration (dlaufzeit)","1","n",2,5,6,9,1,,,4,,,
+"Moral vs Duration (dlaufzeit)","2","n",30,116,69,83,16,28,3,17,,6,
+"Moral vs Duration (dlaufzeit)","3","n",3,5,7,20,6,12,1,3,,3,
+"Moral vs Duration (dlaufzeit)","4","n",23,55,43,48,11,16,4,8,,1,
+"Moral vs Duration (dlaufzeit)","0","L",-1.43,-2.14,-2.95,-4.91,-1.48,-2.53,-2.1,-3.25,-2.26,,
+"Moral vs Duration (dlaufzeit)","1","L",-4.65,-1.96,-1.48,-1.45,-4.3,,,-1.06,,,
+"Moral vs Duration (dlaufzeit)","2","L",0.77,0.59,0.3,0.42,-0.5,-0.32,-1.51,-1.53,,-2.14,
+"Moral vs Duration (dlaufzeit)","3","L",-1.51,-0.75,-1.15,-0.13,-0.96,-1.41,-2.1,-1.01,,-1.51,
+"Moral vs Duration (dlaufzeit)","4","L",1.06,1.1,0.57,0.82,-0.05,-0.5,-0.72,-1.79,,-2.1,
+"Moral vs Duration (dlaufzeit)","0","U",4.65,0.96,0.75,1.01,1.48,1.51,4.3,0.31,2.26,,
+"Moral vs Duration (dlaufzeit)","1","U",1.43,1.28,1.48,1.05,2.1,,,2.76,,,
+"Moral vs Duration (dlaufzeit)","2","U",2.77,1.41,1.32,1.36,1.46,1.16,2.53,0.39,,0.96,
+"Moral vs Duration (dlaufzeit)","3","U",2.53,2.95,1.65,1.73,2.14,0.79,4.3,4.91,,2.53,
+"Moral vs Duration (dlaufzeit)","4","U",4.36,2.64,2.01,2.3,2.73,1.46,5.12,0.89,,4.3,
+"Moral vs Merged Duration (dlaufzeit_merged)","0","Empir. logits",1.61,-0.59,-1.1,-1.95,0,-0.51,,,,,-0.76
+"Moral vs Merged Duration (dlaufzeit_merged)","1","Empir. logits",-1.61,-0.34,0,-0.2,-1.1,,,,,,0.85
+"Moral vs Merged Duration (dlaufzeit_merged)","2","Empir. logits",1.77,1,0.81,0.89,0.48,0.42,,,,,-0.45
+"Moral vs Merged Duration (dlaufzeit_merged)","3","Empir. logits",0.51,1.1,0.25,0.8,0.59,-0.31,,,,,1.47
+"Moral vs Merged Duration (dlaufzeit_merged)","4","Empir. logits",2.71,1.87,1.29,1.56,1.34,0.48,,,,,0.44
+"Moral vs Merged Duration (dlaufzeit_merged)","0","n",2,6,5,3,6,3,,,,,10
+"Moral vs Merged Duration (dlaufzeit_merged)","1","n",2,5,6,9,1,,,,,,4
+"Moral vs Merged Duration (dlaufzeit_merged)","2","n",30,116,69,83,16,28,,,,,26
+"Moral vs Merged Duration (dlaufzeit_merged)","3","n",3,5,7,20,6,12,,,,,7
+"Moral vs Merged Duration (dlaufzeit_merged)","4","n",23,55,43,48,11,16,,,,,13
+"Moral vs Merged Duration (dlaufzeit_merged)","0","L",-1.43,-2.14,-2.95,-4.91,-1.48,-2.53,,,,,-2.03
+"Moral vs Merged Duration (dlaufzeit_merged)","1","L",-4.65,-1.96,-1.48,-1.45,-4.3,,,,,,-1.06
+"Moral vs Merged Duration (dlaufzeit_merged)","2","L",0.77,0.59,0.3,0.42,-0.5,-0.32,,,,,-1.22
+"Moral vs Merged Duration (dlaufzeit_merged)","3","L",-1.51,-0.75,-1.15,-0.13,-0.96,-1.41,,,,,-0.31
+"Moral vs Merged Duration (dlaufzeit_merged)","4","L",1.06,1.1,0.57,0.82,-0.05,-0.5,,,,,-0.63
+"Moral vs Merged Duration (dlaufzeit_merged)","0","U",4.65,0.96,0.75,1.01,1.48,1.51,,,,,0.51
+"Moral vs Merged Duration (dlaufzeit_merged)","1","U",1.43,1.28,1.48,1.05,2.1,,,,,,2.76
+"Moral vs Merged Duration (dlaufzeit_merged)","2","U",2.77,1.41,1.32,1.36,1.46,1.16,,,,,0.32
+"Moral vs Merged Duration (dlaufzeit_merged)","3","U",2.53,2.95,1.65,1.73,2.14,0.79,,,,,3.25
+"Moral vs Merged Duration (dlaufzeit_merged)","4","U",4.36,2.64,2.01,2.3,2.73,1.46,,,,,1.51
+"Account (laufkont) vs Duration (dlaufzeit)","1","Empir. logits",1.49,0.38,-0.11,0.27,0.27,-1.19,0.51,-1,,-1.61,
+"Account (laufkont) vs Duration (dlaufzeit)","2","Empir. logits",0.37,0.94,0.67,0.22,0.44,0.27,1.61,-0.3,-1.1,-0.85,
+"Account (laufkont) vs Duration (dlaufzeit)","3","Empir. logits",2.56,1.02,0.79,0.45,-1.1,0.51,1.61,,,,
+"Account (laufkont) vs Duration (dlaufzeit)","4","Empir. logits",2.83,2,1.78,2.07,1.44,0.88,1.61,0.45,1.1,2.2,
+"Account (laufkont) vs Duration (dlaufzeit)","1","n",18,47,36,44,14,14,3,12,,2,
+"Account (laufkont) vs Duration (dlaufzeit)","2","n",10,54,36,36,13,14,2,19,1,4,
+"Account (laufkont) vs Duration (dlaufzeit)","3","n",6,16,7,8,1,3,2,,,,
+"Account (laufkont) vs Duration (dlaufzeit)","4","n",26,70,51,75,12,28,2,8,1,4,
+"Account (laufkont) vs Duration (dlaufzeit)","1","L",0.33,-0.2,-0.76,-0.32,-0.75,-2.39,-1.51,-2.23,,-4.65,
+"Account (laufkont) vs Duration (dlaufzeit)","2","L",-0.83,0.35,-0.01,-0.43,-0.63,-0.75,-1.43,-1.19,-4.3,-2.76,
+"Account (laufkont) vs Duration (dlaufzeit)","3","L",-0.32,-0.06,-0.71,-0.89,-4.3,-1.51,-1.43,,,,
+"Account (laufkont) vs Duration (dlaufzeit)","4","L",1.18,1.28,1.01,1.36,0.06,0.08,-1.43,-0.89,-2.1,-0.72,
+"Account (laufkont) vs Duration (dlaufzeit)","1","U",2.65,0.96,0.54,0.86,1.29,0.01,2.53,0.23,,1.43,
+"Account (laufkont) vs Duration (dlaufzeit)","2","U",1.57,1.53,1.35,0.87,1.51,1.29,4.65,0.59,2.1,1.06,
+"Account (laufkont) vs Duration (dlaufzeit)","3","U",5.44,2.1,2.29,1.79,2.1,2.53,4.65,,,,
+"Account (laufkont) vs Duration (dlaufzeit)","4","U",4.48,2.72,2.55,2.78,2.82,1.68,4.65,1.79,4.3,5.12,
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","1","Empir. logits",1.49,0.38,-0.11,0.27,0.27,-1.19,,,,,-0.82
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","2","Empir. logits",0.37,0.94,0.67,0.22,0.44,0.27,,,,,-0.3
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","3","Empir. logits",2.56,1.02,0.79,0.45,-1.1,0.51,,,,,1.61
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","4","Empir. logits",2.83,2,1.78,2.07,1.44,0.88,,,,,1.27
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","1","n",18,47,36,44,14,14,,,,,17
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","2","n",10,54,36,36,13,14,,,,,26
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","3","n",6,16,7,8,1,3,,,,,2
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","4","n",26,70,51,75,12,28,,,,,15
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","1","L",0.33,-0.2,-0.76,-0.32,-0.75,-2.39,,,,,-1.82
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","2","L",-0.83,0.35,-0.01,-0.43,-0.63,-0.75,,,,,-1.06
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","3","L",-0.32,-0.06,-0.71,-0.89,-4.3,-1.51,,,,,-1.43
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","4","L",1.18,1.28,1.01,1.36,0.06,0.08,,,,,0.08
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","1","U",2.65,0.96,0.54,0.86,1.29,0.01,,,,,0.18
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","2","U",1.57,1.53,1.35,0.87,1.51,1.29,,,,,0.46
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","3","U",5.44,2.1,2.29,1.79,2.1,2.53,,,,,4.65
+"Account (laufkont) vs Merged Duration (dlaufzeit_merged)","4","U",4.48,2.72,2.55,2.78,2.82,1.68,,,,,2.46
+"Age (dalter) vs Duration (dlaufzeit)","<=25","Empir. logits",0.25,0.4,1.1,0.61,0.25,-0.62,,-1.85,,0,
+"Age (dalter) vs Duration (dlaufzeit)","26-39","Empir. logits",2.5,1.21,0.84,0.72,0.93,0.64,1.3,0.1,1.1,0,
+"Age (dalter) vs Duration (dlaufzeit)","40-59","Empir. logits",1.76,1.52,0.45,1.47,0.2,-0.17,1.95,0,-1.1,,
+"Age (dalter) vs Duration (dlaufzeit)","60-64","Empir. logits",1.61,1.47,0.51,1.47,1.1,-1.1,,,,0,
+"Age (dalter) vs Duration (dlaufzeit)",">=65","Empir. logits",0.51,0.85,0.34,1.61,-1.1,,,,,,
+"Age (dalter) vs Duration (dlaufzeit)","<=25","n",7,40,29,26,7,9,,10,,4,
+"Age (dalter) vs Duration (dlaufzeit)","26-39","n",32,84,67,89,22,38,6,19,1,4,
+"Age (dalter) vs Duration (dlaufzeit)","40-59","n",16,52,26,39,9,11,3,10,1,,
+"Age (dalter) vs Duration (dlaufzeit)","60-64","n",2,7,3,7,1,1,,,,2,
+"Age (dalter) vs Duration (dlaufzeit)",">=65","n",3,4,5,2,1,,,,,,
+"Age (dalter) vs Duration (dlaufzeit)","<=25","L",-1.15,-0.22,0.27,-0.18,-1.15,-1.92,,-3.57,,-1.75,
+"Age (dalter) vs Duration (dlaufzeit)","26-39","L",1.21,0.7,0.32,0.28,0.02,-0.02,-0.51,-0.78,-2.1,-1.75,
+"Age (dalter) vs Duration (dlaufzeit)","40-59","L",0.42,0.82,-0.32,0.68,-1.05,-1.31,-1.01,-1.18,-4.3,,
+"Age (dalter) vs Duration (dlaufzeit)","60-64","L",-1.43,-0.31,-1.51,-0.31,-2.1,-4.3,,,,-2.26,
+"Age (dalter) vs Duration (dlaufzeit)",">=65","L",-1.51,-1.06,-1.28,-1.43,-4.3,,,,,,
+"Age (dalter) vs Duration (dlaufzeit)","<=25","U",1.65,1.02,1.93,1.4,1.65,0.68,,-0.13,,1.75,
+"Age (dalter) vs Duration (dlaufzeit)","26-39","U",3.79,1.72,1.36,1.16,1.84,1.3,3.11,0.98,4.3,1.75,
+"Age (dalter) vs Duration (dlaufzeit)","40-59","U",3.1,2.22,1.22,2.26,1.45,0.97,4.91,1.18,2.1,,
+"Age (dalter) vs Duration (dlaufzeit)","60-64","U",4.65,3.25,2.53,3.25,4.3,2.1,,,,2.26,
+"Age (dalter) vs Duration (dlaufzeit)",">=65","U",2.53,2.76,1.96,4.65,2.1,,,,,,
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","<=25","Empir. logits",0.25,0.4,1.1,0.61,0.25,-0.62,,,,,-1.19
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","26-39","Empir. logits",2.5,1.21,0.84,0.72,0.93,0.64,,,,,0.39
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","40-59","Empir. logits",1.76,1.52,0.45,1.47,0.2,-0.17,,,,,0.27
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)",">=60","Empir. logits",1.1,1.34,0.45,1.73,0,-1.1,,,,,0
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","<=25","n",7,40,29,26,7,9,,,,,14
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","26-39","n",32,84,67,89,22,38,,,,,30
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","40-59","n",16,52,26,39,9,11,,,,,14
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)",">=60","n",5,11,8,9,2,1,,,,,2
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","<=25","L",-1.15,-0.22,0.27,-0.18,-1.15,-1.92,,,,,-2.39
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","26-39","L",1.21,0.7,0.32,0.28,0.02,-0.02,,,,,-0.33
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","40-59","L",0.42,0.82,-0.32,0.68,-1.05,-1.31,,,,,-0.75
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)",">=60","L",-0.75,-0.05,-0.89,-0.01,-2.26,-4.3,,,,,-2.26
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","<=25","U",1.65,1.02,1.93,1.4,1.65,0.68,,,,,0.01
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","26-39","U",3.79,1.72,1.36,1.16,1.84,1.3,,,,,1.11
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)","40-59","U",3.1,2.22,1.22,2.26,1.45,0.97,,,,,1.29
+"Merged Age (dalter_merged) vs Merged Duration (dlaufzeit_merged)",">=60","U",2.95,2.73,1.79,3.47,2.26,2.1,,,,,2.26

@@ -1,0 +1,25 @@
+"Variable","Metric","<=6","7-12","13-18","19-24","25-30","31-36","37-42","43-48","49-54",">54",">36","<=25","26-39","40-59","60-64",">=65",">=60","1","2","3","4","1_2"
+"Duration Group (dlaufzeit)","Empir. logits",1.82,1.11,0.8,0.93,0.6,0.23,1.73,-0.35,0,0,,,,,,,,,,,,
+"Duration Group (dlaufzeit)","n",60,187,130,163,40,59,9,39,2,10,,,,,,,,,,,,
+"Duration Group (dlaufzeit)","L",1.1,0.78,0.43,0.59,-0.04,-0.28,-0.01,-0.98,-2.26,-1.18,,,,,,,,,,,,
+"Duration Group (dlaufzeit)","U",2.54,1.44,1.17,1.27,1.24,0.74,3.47,0.28,2.26,1.18,,,,,,,,,,,,
+"Merged Duration (dlaufzeit_merged)","Empir. logits",1.82,1.11,0.8,0.93,0.6,0.23,,,,,0,,,,,,,,,,,
+"Merged Duration (dlaufzeit_merged)","n",60,187,130,163,40,59,,,,,60,,,,,,,,,,,
+"Merged Duration (dlaufzeit_merged)","L",1.1,0.78,0.43,0.59,-0.04,-0.28,,,,,-0.5,,,,,,,,,,,
+"Merged Duration (dlaufzeit_merged)","U",2.54,1.44,1.17,1.27,1.24,0.74,,,,,0.5,,,,,,,,,,,
+"Age Group (dalter)","Empir. logits",,,,,,,,,,,,0.33,0.95,1.02,1.21,0.65,,,,,,
+"Age Group (dalter)","n",,,,,,,,,,,,132,362,167,23,15,,,,,,
+"Age Group (dalter)","L",,,,,,,,,,,,-0.01,0.72,0.68,0.26,-0.38,,,,,,
+"Age Group (dalter)","U",,,,,,,,,,,,0.67,1.18,1.36,2.16,1.68,,,,,,
+"Merged Age (dalter_merged)","Empir. logits",,,,,,,,,,,,0.33,0.95,1.02,,,1,,,,,
+"Merged Age (dalter_merged)","n",,,,,,,,,,,,132,362,167,,,38,,,,,
+"Merged Age (dalter_merged)","L",,,,,,,,,,,,-0.01,0.72,0.68,,,0.29,,,,,
+"Merged Age (dalter_merged)","U",,,,,,,,,,,,0.67,1.18,1.36,,,1.71,,,,,
+"Occupation (beruf)","Empir. logits",,,,,,,,,,,,,,,,,,0.44,0.84,0.93,0.52,
+"Occupation (beruf)","n",,,,,,,,,,,,,,,,,,13,140,444,102,
+"Occupation (beruf)","L",,,,,,,,,,,,,,,,,,-0.63,0.48,0.72,0.12,
+"Occupation (beruf)","U",,,,,,,,,,,,,,,,,,1.51,1.2,1.14,0.92,
+"Merged Occupation (beruf_merged)","Empir. logits",,,,,,,,,,,,,,,,,,,,0.93,0.52,0.81
+"Merged Occupation (beruf_merged)","n",,,,,,,,,,,,,,,,,,,,444,102,153
+"Merged Occupation (beruf_merged)","L",,,,,,,,,,,,,,,,,,,,0.72,0.12,0.47
+"Merged Occupation (beruf_merged)","U",,,,,,,,,,,,,,,,,,,,1.14,0.92,1.15
