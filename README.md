@@ -8,31 +8,43 @@ The dataset contains 1,000 credit observations and is documented by the Ludwig-M
 
 The model uses the following predictors:
 
-| Variable | Description | Type |
-|---|---|---|
+ Variable | Description | Type |
+| :--- | :--- | :--- |
 | `laufzeit` | Credit duration in months | Numeric |
-| `moral` | Previous payment behavior | Categorical |
-| `laufkont` | Existing current account status | Categorical |
+| `dlaufzeit` | Expert-discretized credit duration | Categorical (Ordinal) |
+| `moral` | Previous payment behavior | Categorical (Ordinal) |
+| `laufkont` | Existing current account status | Categorical (Ordinal) |
 | `alter` | Borrower age in years | Numeric |
-| `beruf` | Occupation | Categorical |
+| `dalter` | Expert-discretized borrower age | Categorical (Ordinal) |
+| `beruf` | Occupation | Categorical (Ordinal) |
 
-The categorical variables show substantial differences in category frequencies:
+The continuous variables for age and duration are supplemented by discrete counterparts (`dalter`, `dlaufzeit`), which are binned according to the expert-based thresholds defined in the original codebook.
+
+
+The observations are split into 700 training data, with 654 unique covariate profiles, and 300 test data. The categorical variables show substantial differences in category frequencies with respect to the training data:
+
 
 | Variable | Category 0 | Category 1 | Category 2 | Category 3 | Category 4 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `moral` | 4.0% | 4.9% | 53.0% | 8.8% | 29.3% |
-| `laufkont` | - | 27.4% | 26.9% | 6.3% | 39.4% |
-| `beruf` | - | 2.2% | 20.0% | 63.0% | 14.8% |
+| `moral` | 5.0% | 3.8% | 52.6% | 8.5% | 29.8% |
+| `laufkont` | - | 27.1% | 27.0% | 6.1% | 39.6% |
+| `beruf` | - | 1.8% | 20.0% | 63.5% | 14.6% |
 
-The categorical predictors are unevenly distributed, with particularly sparse groups in `moral` and `beruf`. These differences in category frequency are considered when interpreting uncertainty and apparent deviations in the subsequent EDA.
-The continuous predictors are summarized using basic descriptive statistics:
+The frequencies of the expert-discretized predictors are given as:
+
+*   `dalter`: `<=25` (18.9%), `26-39` (51.8%), `40-59` (23.9%), `60-64` (3.3%), `>=65` (2.1%)
+*   `dlaufzeit`: `<=6` (8.6%), `7-12` (26.8%), `13-18` (18.6%), `19-24` (23.3%), `25-30` (5.7%), `31-36` (8.4%), `37-42` (1.3%), `43-48` (5.6%), `49-54` (0.3%), `>54` (1.4%)
+
+The categorical predictors are unevenly distributed. Specific segments exhibit data sparsity, notably `beruf` (Category 1) as well as the upper tails of the discretized variables (`dalter` > 60 years and `dlaufzeit` > 36 months). These frequency differences are formally considered when interpreting estimation uncertainty and confidence intervals in the subsequent data analysis.
+
+The continuous predictors with respect to the training data are summarized using basic descriptive statistics:
 
 | Variable | Min | Median | Mean | SD | Max |
 |:---------|----:|-------:|-----:|----:|----:|
 | `laufzeit` | 4 | 18 | 20.9 | 12.1 | 72 |
-| `alter` | 19 | 33 | 35.5 | 11.4 | 75 |
+| `alter` | 19 | 33 | 35.4 | 11.3 | 74 |
 
-The target variable is:
+The target variable is defined as :
 
 | Variable | Description | Coding |
 |---|---|---|
@@ -61,7 +73,7 @@ The choice of a standard binomial logistic regression is grounded in the structu
 
 *   **Probability Constraints:** The dependent variable is binary. Standard linear regression cannot constrain predicted values to the $[0, 1]$ interval. The logit link function naturally maps the unbounded linear predictor $\eta_i \in \mathbb{R}$ to valid conditional probabilities.
 *   **Interpretability (Canonical Link):** While other cumulative distribution functions (e.g., Probit or Complementary log-log) could restrict predictions to valid probabilities, the logit link is the canonical link for the binomial distribution. It uniquely allows coefficients to be exponentiated into odds ratios, which is crucial for transparent risk differentiation in credit portfolios.
-*   **Algorithmic Stability (Concave Log-Likelihood):** The log-likelihood function of the binomial logistic regression model is strictly concave, provided the design matrix has full column rank. This mathematical property guarantees a unique global maximum during parameter estimation, which is essential for computationally robust risk scoring. A pre-estimation rank check of the full candidate design matrix confirmed full column rank ($rank = p = 13$), assuring the absence of perfect multicollinearity and guaranteeing the stability of the optimization algorithm.
+*   **Algorithmic Stability (Concave Log-Likelihood):** The log-likelihood function of the binomial logistic regression model is strictly concave, provided the design matrix has full column rank. This mathematical property guarantees a unique global maximum during parameter estimation, which is essential for computationally robust risk scoring. A pre-estimation rank check of the full candidate design matrix confirmed full column rank ($rank = p = 26$), assuring the absence of perfect multicollinearity and guaranteeing the stability of the optimization algorithm.
 
 ### Data Aggregation
 To prevent data leakage during model evaluation, identical covariate profiles within the training set are aggregated into grouped binomial observations:
