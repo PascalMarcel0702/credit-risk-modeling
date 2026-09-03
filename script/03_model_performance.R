@@ -86,7 +86,7 @@ calculate_empirical_loss <- function(threshold, probability, data, cost_ratio_fa
 
 # Calculate losses w.r.t. all thresholds
 loss_values <- sapply(all_thresholds, function(t) {
-  calculate_empirical_loss(threshold = t, probability = phat_train, data = data_train, cost_ratio_factor = cost_ratio)
+  calculate_empirical_loss(threshold = t, probability = phat_train, data = data_train, cost_ratio_factor = cr_factor)
 })
 
 # Find minimum
@@ -121,8 +121,11 @@ calculate_net_profit <- function(threshold, probability, data) {
   interest_rate_margin <- data$hoehe * data$laufzeit / 12 * ir
   loss_of_capital <- data$hoehe * LGD
   
-  profit_vector <- ifelse(yhat == 1 & data$kredit == 1, interest_rate_margin,
-                          ifelse(yhat == 1 & data$kredit == 0, -loss_of_capital, 0))
+  profit_vector <- case_when(
+    yhat == 1 & data$kredit == 1 ~ interest_rate_margin,
+    yhat == 1 & data$kredit == 0 ~ -loss_of_capital,
+    TRUE ~ 0
+  )
  
   return(sum(profit_vector))
 }
@@ -605,7 +608,7 @@ profit_per_applicant <- profit_total / nrow(data_test) # 49.68 €
 
 # Profit per applicant train
 profit_total_train <- calculate_net_profit(optimal_threshold, phat_train, data_train)
-profit_per_applicant_train <- profit_total / nrow(data_train) # 13.47 €
+profit_per_applicant_train <- profit_total_train / nrow(data_train) # 13.47 €
 
 
 # Conclusion:

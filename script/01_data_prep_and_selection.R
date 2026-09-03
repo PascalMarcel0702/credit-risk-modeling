@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script: 01_data_prep_and_selection.R
-# Purpose: Data inspection, functional form assessment (EDA, Partial Residuals),  
-#          and model selection for credit repayment prediction.
+# Purpose: Data inspection, functional form assessment EDA,  
+#          and model selection for credit default prediction.
 # ==============================================================================
 
 # 1. Setup ---------------------------------------------------------------------
@@ -52,6 +52,7 @@ credit <- credit %>%
 # - dlaufzeit, dalter: Ordinal categorical (expert-discretized bins, see documentation)
 # - moral, laufkont, beruf: Ordinal categorical
 
+# Note: The covariate hoehe is added for section 3, model evaluation
 credit_candidate <- credit[, c("kredit", "laufzeit", "dlaufzeit", "moral", "laufkont", "alter", "dalter", "beruf", "hoehe")]
 
 credit_candidate <- credit_candidate %>%
@@ -82,8 +83,12 @@ data_test  <- testing(data_split)
 saveRDS(data_train, "output/data_train.rds") # Adjustment needed: Save data at end
 saveRDS(data_test, "output/data_test.rds")  # Adjustment needed: Save data at end
 
-# 4.2 Aggregate only the training data to perform goodness-of-fit tests and to analyze empirical logits
-# Note: We include both the continuous and their discrete counterparts here so they are available for both GAMs and EDA plots.
+# 4.2 Aggregate data
+#  Group binary data to obtain binomial response. 
+#  Note: Residual deviance in binary regression model cannot be used to evaluate
+#  goodness of fit, since it does not approximately follow a \chi^2 distribution asymptotically. For binomial data, the residual deviance approx. follows a \chi^2 distribution asymptotically (under assumption of a correcet model), since the number of parameters is fixed relative to sample size
+
+
 credit_agg <- aggregate(
   cbind(kredit, no_kredit) ~ laufzeit + dlaufzeit + moral + laufkont + alter + dalter + beruf, 
   data = data_train,
@@ -112,6 +117,7 @@ qr(X_candidate)$rank
 ncol(X_candidate)
 
 #Interpretation: Rank (26) is equal to number of parameters, i.e., full rank.
+
 # 5. Exploratory Data Analysis (EDA) -------------------------------------------
 
 # 5.1 Categorical Variables (Qualitative)
@@ -121,19 +127,18 @@ prop.table(table(data_train$laufkont))
 prop.table(table(data_train$beruf))
 prop.table(table(data_train$dalter))
 prop.table(table(data_train$dlaufzeit))
+
 # Interpretation:
-# No empty categories exist. However, the data exhibits severe sparsity in specific groups:
-# - 'beruf' level 1 is extremely rare (1.9%).
-# - The expert-discretized continuous variables show heavy tail sparsity:
-#   For 'dalter', age groups > 60 years account for only ~5.4% combined.
-#   For 'dlaufzeit', durations > 36 months are highly fragmented, with bins like '49-54' 
-#   containing less than 0.3% of the training observations.
-# This sparsity will inevitably lead to high estimation variance and wide confidence 
-# intervals for these specific categories during the exploratory data analysis (EDA).
+# No empty, but sparse categories exist:
+# - 'beruf' level 1 (1.9%).
+# - The discretized continuous variables:
+#   'dalter': age groups > 60 years contain in total 5.4%.
+#   'dlaufzeit': durations > 36 months are fragmented - bins like '49-54' 
+#    contains 0.3% of obs.
+# Consequence: High estimation variances and CI widths (high uncertainity)
 
 # 5.1 Categorical Variables (Qualitative)
-# Objective: Visualize the marginal effect of each categorical variable model-free 
-# using empirical logits to assess risk profiles and identify high-variance sparse groups.
+# Objective: Visualize the marginal effect on response by plotting empirical logits
 
 # Helper function to calculate and plot empirical logits for categorical variables
 plot_emp_logit <- function(df, grouping_var, var_label) {
@@ -179,7 +184,7 @@ ggsave("output/figures/eda_emp_logit_dlaufzeit.png", plot = p_dlaufzeit, width =
 # Tabular Summary of Empirical Logits
 # Goal: Create Table showing empirical logits, sample sizes (n), and 95% confidence intervals (L, U) for all discrete covariates.
 
-# Helper function to generate and pivot the table for a single variable
+# Helper function to generate table for a single variable
 generate_emp_logit_table <- function(df, grouping_var, var_name) {
   df %>%
     group_by({{ grouping_var }}) %>%
@@ -195,11 +200,11 @@ generate_emp_logit_table <- function(df, grouping_var, var_name) {
       `L` = round(`Empir. logits` - qnorm(0.975) * se_emp_logit, 2),
       `U` = round(`Empir. logits` + qnorm(0.975) * se_emp_logit, 2)
     ) %>%
-    # Select only the required columns
+    # Select required columns
     select({{ grouping_var }}, `Empir. logits`, n, L, U) %>%
-    # Format 'n' as numeric for consistency, others are rounded numerics
+    # Format 'n' as numeric
     mutate(n = as.numeric(n)) %>%
-    # Pivot metrics to rows and categories to columns
+    # Metrics as rows and categories as columns
     pivot_longer(
       cols = c(`Empir. logits`, n, L, U), 
       names_to = "Metric", 
@@ -209,19 +214,18 @@ generate_emp_logit_table <- function(df, grouping_var, var_name) {
       names_from = {{ grouping_var }}, 
       values_from = Value
     ) %>%
-    # Add a column identifying the variable name
+    # Add a column for variable name
     mutate(Variable = var_name, .before = 1)
 }
 
-# Generate tables for all categorical and discretized variables
+# Generate tables
 tab_moral     <- generate_emp_logit_table(credit_agg, moral, "Payment History (moral)")
 tab_laufkont  <- generate_emp_logit_table(credit_agg, laufkont, "Account Status (laufkont)")
 tab_beruf     <- generate_emp_logit_table(credit_agg, beruf, "Occupation (beruf)")
 tab_dalter    <- generate_emp_logit_table(credit_agg, dalter, "Age Group (dalter)")
 tab_dlaufzeit <- generate_emp_logit_table(credit_agg, dlaufzeit, "Duration Group (dlaufzeit)")
 
-# Combine all individual tables into one master summary table
-# bind_rows automatically aligns column names and fills non-matching categories with NA
+# Combine single tables into master table
 eda_emp_logit_master <- bind_rows(
   tab_moral, 
   tab_laufkont, 
@@ -230,18 +234,18 @@ eda_emp_logit_master <- bind_rows(
   tab_dlaufzeit
 )
 
-# Export the master table as a CSV for inclusion in the README or appendix
+# Export the master table as CSV
 write.csv(
   eda_emp_logit_master, 
   "output/tables/eda_empirical_logits_summary.csv", 
   row.names = FALSE, 
-  na = "" # Leaves NA cells blank for a cleaner look
+  na = "" # Leaves NA cells blank
 )
 
 print(eda_emp_logit_master)
 
 
-# Interpretation of Empirical Logits through Logit Delta and CI separation
+# Interpretation of Empirical Logits by Logit-Delta and CI separation
 
 # 1. Primary Risk Drivers (High Delta, Non-Overlapping CIs):
 # - 'dlaufzeit': Marginal effect size Delta = 2.17 (Extremes: <=6: 1.82 vs. 43-48: -0.35). Extremes exhibit no CI overlap. Bins >48 months and 37-42 exhibit CI widths > 2.00 due to data sparsity (n <= 10). Regarding this, the plot overall shows a monotonic downward trend.
@@ -259,7 +263,6 @@ print(eda_emp_logit_master)
 # 5.2 Continuous Variables (Quantitative) & Functional Form Assessment
 
 # Descriptive statistics
-
 continuous_summary <- tibble(
   Variable = c("laufzeit", "alter"),
   Min = c(min(data_train$laufzeit), min(data_train$alter)),
@@ -274,26 +277,25 @@ print(continuous_summary)
 
 # Functional Form Assessment ---------------------------------------------------
 
-# For continuous covariates (alter, laufzeit), we must verify if they have a 
-# strictly linear relationship with the log-odds, or if they require transformation.
-# We use Generalized Additive Models (GAMs) with smoothing splines s() to estimate
-# the true, data-driven shape of the effect. 
+# For continuous covariates (alter, laufzeit) investigate relationship with the log-odds
+# Use Generalized Additive Models (GAMs) with smoothing splines s() to estimate
+# data-driven shape of the covariate. 
 # 
 # Interpretation of the 'mgcv::gam' summary:
-# - Check the Approximate significance of smooth terms.
-# - A significant p-value (p < 0.05) combined with an Effective Degrees of Freedom 
-#   (edf) > 1 suggests (a statistically significant) non-linear relationship.
-# - If not significant, there is no evidence to reject the linear main effect.
+# - Check approximate significance of smooth terms.
+# - A significant p-value (p < 0.05) combined with  'Effective Degrees of Freedom' 
+#   (edf) > 1 indicates non-linear relationship.
+# - If not significant, retain the linear main effect.
 
-
+# Create plot for EDA
 png("output/figures/gam_continuous_predictors.png", width = 2450, height = 1200, res = 300)
-# 2. Set global graphical parameters for a modern look
+# Set global graphical parameters for base R plot
 # mfrow = c(1, 2) creates a 1x2 grid (side-by-side)
-# bty = "l" removes the top and right box borders for a cleaner look
-# las = 1 makes all axis labels horizontal and easier to read
+# bty = "l" removes the top and right box borders
+# las = 1 makes all axis labels horizontal
 par(mfrow = c(1, 2), mar = c(5, 5, 4, 2) + 0.1, las = 1, bty = "l", cex.main = 1.2, cex.lab = 1.1)
 
-# Assess 'alter' (Age)
+# 'alter' (Age)
 gam_alter <- mgcv::gam(
   cbind(kredit, no_kredit) ~ s(alter),
   data = credit_agg,
@@ -304,16 +306,17 @@ plot(gam_alter,
      se = TRUE, 
      xlab = "Age in Years", 
      ylab = "Partial Effect on Log-Odds",
-     col = "#2c3e50",      # Modern dark slate blue
-     lwd = 2.5             # Thicker line
+     col = "#2c3e50",
+     lwd = 2.5        
 )
 
 summary(gam_alter)
 # Interpretation for 'alter':
-# The smooth term for 'alter' yields an estimated degree of freedom (edf) of 1.903 > 1 -> Indication of quadratic relationship by approximate significance test (p-value 0.0246 < 0.05)
-# Conclusion: The GAM provides evidence for a nonlinear association between age and the log-odds.
+# The smooth term for 'alter' has estimated degree of freedom (edf) of 1.903 > 1.
+# In addition: Approximate significance test with p-value 0.0246 < 0.05.
+# Conclusion: Influence of quadratic (polynomial) transformation of 'alter' on response should be investigated in model selection phase.
 
-# Assess 'laufzeit' (Duration)
+# 'laufzeit' (Duration)
 gam_laufzeit <- mgcv::gam(
   cbind(kredit, no_kredit) ~ s(laufzeit),
   data = credit_agg,
@@ -331,23 +334,21 @@ dev.off()
 
 summary(gam_laufzeit)
 # Interpretation for 'laufzeit':
-# The smooth term is shrinked to a straight line, with edf = 1.
-# The plot shows a linear downward trend.
-# Moreover, the p-value of 5.83e-07 < 0.05 indicates no non-linear transformation for 'laufzeit'
-# Conclusion: The smooth term for 'duration'laufzeit' is highly significant, indicating a strong association with the response. However, its effective degrees of freedom is exactly 1, indicating that the estimated smooth is effectively linear rather than nonlinear
+# The plot shows a linear downward trend with small CI - width in dense data regions.
+# The smooth term is approx. a straight line, with edf = 1 with p-value of 5.83e-07 < 0.05 
+# Conclusion: The linear main effect of 'laufzeit' on the response should be investigated in model selection phase.
 
 # Clean up temporary GAM fits
 rm(gam_alter, gam_laufzeit)
 
 # 5.3 Exploratory Data Analysis for Interaction Effects-------------------------
-# Objective: Check empirical logit plots for non-parallel trends to visually assess the need for interaction terms.
-# Instead of all 10 combinations, we analyze the strongest main effects driven by hypotheses
+# Objective: Check empirical logit plots for non-parallel trends to visually detect possible interaction terms.
+# Instead of all possible combinations, analyze the strongest main effects driven by hypotheses
 
 
-# 1. Helper function for Interaction Profile Plots
+# Helper function for Interaction plots
 plot_interaction_profile <- function(df, x_var, group_var, x_label, legend_label) {
-  
-  # Step A: Aggregate raw counts and calculate metrics strictly per cell
+  # Grouping and calculating metrics
   agg_data <- df %>%
     group_by({{ x_var }}, {{ group_var }}) %>%
     summarise(
@@ -361,9 +362,8 @@ plot_interaction_profile <- function(df, x_var, group_var, x_label, legend_label
       ci_lower = emp_logit - qnorm(0.975) * se_emp_logit,
       ci_upper = emp_logit + qnorm(0.975) * se_emp_logit
     )
-  
-  # Step B: Generate the overlaid profile plot
-  pd <- position_dodge(width = 0.3) # Dodge width separates overlapping error bars
+  # Plot
+  pd <- position_dodge(width = 0.3)
   
   ggplot(agg_data, aes(x = {{ x_var }}, y = emp_logit, color = {{ group_var }}, group = {{ group_var }})) +
     geom_point(size = 3, position = pd) +
@@ -378,13 +378,13 @@ plot_interaction_profile <- function(df, x_var, group_var, x_label, legend_label
     theme(
       legend.position = "right",
       panel.grid.minor = element_blank(),
-      axis.text.x = element_text(angle = 45, hjust = 1) # Rotated for cleanly displaying discrete bins
+      axis.text.x = element_text(angle = 45, hjust = 1) # Rotated discrete bins on x- axis
     )
 }
 
 
 # Plot 1: Laufzeit vs. Moral (The longer a loan runs (maturity), the higher the underlying risk of unforeseen life events (unemployment, illness))
-# Q: Does a flawless credit history (moral = 4) provide better protection against this long-term risk than a critical history (moral = 0)?
+# Q: Does a excellent credit history (moral = 4) provide better protection against this long-term risk than a critical history (moral = 0)?
 
 p_inter_dlauf_moral <- plot_interaction_profile(
   credit_agg, dlaufzeit, moral, 
@@ -423,8 +423,7 @@ p_inter_alter_laufzeit <- plot_interaction_profile(
 ggsave("output/figures/eda_interaction_alter_laufzeit.png", plot = p_inter_alter_laufzeit, width = 8, height = 5, dpi = 300)
 
 
-# Table of Empirical Logits for Interactions
-# Goal: Quantify the cross-tabulated empirical logits, cell sizes (n), and 95% CIs (L, U) for certain combinations the primary risk drivers to formally screen for interactions.
+# Table of Empirical Logits for Interactions consisting of empirical logits, cell sizes (n), and 95% CIs (L, U)
 
 generate_interaction_table <- function(df, var1, var2, name_var1, name_var2) {
   df %>%
@@ -455,7 +454,7 @@ generate_interaction_table <- function(df, var1, var2, name_var1, name_var2) {
       names_from = {{ var2 }}, 
       values_from = Value
     ) %>%
-    # Enforce strict row order matching Table 4.8
+    # Row order
     mutate(Metric = factor(Metric, levels = c("Empir. logits", "n", "L", "U"))) %>%
     arrange(Metric, {{ var1 }}) %>%
     rename(Category_Var1 = {{ var1 }}) %>%
@@ -484,7 +483,6 @@ write.csv(
   na = ""
 )
 
-# Print for inspection
 print(eda_interaction_master)
 
 
@@ -502,35 +500,33 @@ print(eda_interaction_master)
 
 
 # 5.4 Data Refinement: Category Merging based on EDA ---------------------------
-# In case of data sparsity (e.g., dlaufzeit >36,dalter >=60, and beruf level 1), the variance of estimates rises which leads to large CIs. Moreover, if neighbooring groups in categories of covariates habe similar effects on response (similar empirical logits with overlapping CIs), the categories can be merged, if it makes sense in the context
+# Data sparsity (e.g., dlaufzeit >36,dalter >=60, and beruf level 1), rises variance of estimates and thus leads to large CIs. If neighbooring bins of a covariate have similar effects on response (similar empirical logits with overlapping CIs), the categories can be merged, if it makes sense in the context
 # -> Bias-Variance-Trade-off: Loss of stability at boundaries against win of overall stability, in particular at dense regions.
-# In particular, merging categories reduces the number of parameters leading to lower BIC in the model selection phase next chapter.
+# Note: merging categories reduces the number of parameters leading to lower BIC in the model selection phase next chapter.
 
 #Note on covariates moral and laufkont:
-# 'laufkont' displays a strictly monotonic risk profile, and 'moral' captures crucial qualitative risk distinctiveness at its lower levels. Merging categories for these variables to fix cell sparsity (<5%) would destroy vital main effects and business logic. Hence, they remain unmerged.
+# 'laufkont' displays a strictly monotonic risk profile and thus no categories are merged as it would destroy vital main effects
+# 'moral' captures crucial qualitative risk categories at its lower levels, which should not be merged from business context
 
-# Define helper merging function to apply transformation on test- and training- data
+# Define helper merging function
 apply_category_merging <- function(df) {
   df %>%
     mutate(
-      # Duration Merging
+      # laufzeit
       dlaufzeit_merged = ifelse(dlaufzeit %in% c("37-42", "43-48", "49-54", ">54"), ">36", as.character(dlaufzeit)),
-      # Enforce correct logical ordering (instead of alphabetical default)
       dlaufzeit_merged = factor(dlaufzeit_merged, levels = c("<=6", "7-12", "13-18", "19-24", "25-30", "31-36", ">36")),
       
-      # Age Merging
+      # alter
       dalter_merged = ifelse(dalter %in% c("60-64", ">=65"), ">=60", as.character(dalter)),
-      # Enforce correct logical ordering
       dalter_merged = factor(dalter_merged, levels = c("<=25", "26-39", "40-59", ">=60")),
       
-      # Occupation Merging
+      # beruf
       beruf_merged = ifelse(beruf %in% c(1, 2), "1_2", as.character(beruf)),
-      # Enforce correct logical ordering
       beruf_merged = factor(beruf_merged, levels = c("1_2", "3", "4"))
     )
 }
 
-# Application of transformation on test- and training- data
+# apply transformation on test- and training- data
 data_train <- apply_category_merging(data_train)
 data_test  <- apply_category_merging(data_test)
 
@@ -549,7 +545,7 @@ stopifnot(sum(credit_agg$kredit) + sum(credit_agg$no_kredit) == nrow(data_train)
 stopifnot(all(credit_agg$kredit >= 0), all(credit_agg$no_kredit >= 0))
 
 
-# Pre-Check: Design Matrix Rank with respect to merged covariates for Algorithmic Stability # Adjustment needed
+# Pre-Check: Design Matrix Rank with respect to merged covariates for Algorithmic Stability
 # Create the full design matrix for all candidate variables
 X_candidate_merged <- model.matrix(~ laufzeit + dlaufzeit_merged + moral + laufkont + alter + dalter_merged + beruf_merged, data = credit_agg)
 # Calculating rank using QR decomposition
@@ -560,7 +556,7 @@ ncol(X_candidate_merged)
 
 
 # Re-Evaluation of merged categories
-# Goal: Verify the variance reduction and stabilization achieved by merging
+# Goal: Verify the variance reduction achieved by merging
 
 # Calculation and comparison of relative frequencies
 prop.table(table(data_train$beruf_merged))
@@ -570,7 +566,7 @@ prop.table(table(data_train$dalter))
 prop.table(table(data_train$dlaufzeit_merged))
 prop.table(table(data_train$dlaufzeit))
 
-# Interpretation: No empty categories (as before) and no sparse categories (each contains at least 5% of the training data)
+# Evaluation: No empty categories (as before) and no sparse categories (each contains at least 5% of the training data)
 
 
 # 5.4.1 Marginal Effects Comparison (Before vs. After)
@@ -586,7 +582,7 @@ comparison_dlaufzeit <- p_dlaufzeit + p_dlaufzeit_merged
 comparison_dalter <- p_dalter + p_dalter_merged
 comparison_beruf <- p_beruf + p_beruf_merged
 
-# Save the combined comparative plots
+# Save the combined plots
 ggsave("output/figures/comparison_dlaufzeit.png", plot = comparison_dlaufzeit, width = 10, height = 4, dpi = 300)
 ggsave("output/figures/comparison_beruf.png", plot = comparison_beruf, width = 10, height = 4, dpi = 300)
 ggsave("output/figures/comparison_dalter.png", plot = comparison_dalter, width = 10, height = 4, dpi = 300)
@@ -596,7 +592,7 @@ tab_dlaufzeit_merged <- generate_emp_logit_table(credit_agg, dlaufzeit_merged, "
 tab_dalter_merged    <- generate_emp_logit_table(credit_agg, dalter_merged, "Merged Age (dalter_merged)")
 tab_beruf_merged     <- generate_emp_logit_table(credit_agg, beruf_merged, "Merged Occupation (beruf_merged)")
 
-# Combine raw and merged tables pairwise for direct comparison
+# Combine raw and merged tables pairwise for comparison
 eda_emp_logit_comparison <- bind_rows(
   tab_dlaufzeit,
   tab_dlaufzeit_merged,
@@ -611,7 +607,7 @@ write.csv(
   eda_emp_logit_comparison, 
   "output/tables/eda_empirical_logits_comparison.csv", 
   row.names = FALSE, 
-  na = "" # Leaves NA cells blank for a cleaner look
+  na = ""
 )
 
 print(eda_emp_logit_comparison)
@@ -626,28 +622,28 @@ print(eda_emp_logit_comparison)
 # Beruf:
 #*Raw: Logit extremes given by 0.93 (3) to 0.44 (1). Due to data sparsity, category 1 (n = 13) exhibits a overlapping with other levels. Maximum CI width in category 1 given by 2.14 (L: -0.63, U: 1.51).
 #* Merged (1_2): Aggregation of the sparse category 1 with category 2 (n = 153), the empirical logit is equal to 0.81. CI of the new group is given by 0.68 (L: 0.47, U: 1.15).
-#* Conclusion: Estimation variance was stabilized and overlapping CI issues weakened.
+#* Conclusion: Estimation variance was stabilized and reduction of overlapping CIs.
 
 # Alter:
 #*Raw: Logit extremes ranging from 1.21 (60-64) to 0.33 (<=25). Due to data sparsity, in range of >= 60 years, there is a structural plateau with overlapping CIs. Maximum CI width in category >=65 given by 2.06 (L: -0.38, U: 1.68).
-#* Merged (>= 60): Aggregation of the two sparse upper categories (n = 38), the empirical logit is equal to 1. CI of right tail is given by 1.42 (L: 0.29, U: 1.71).
+#* Merged (>= 60): Aggregation of the two sparse upper categories (n = 38), empirical logit is equal to 1. CI of right tail is given by 1.42 (L: 0.29, U: 1.71).
 #* Conclusion: Estimation variance was stabilized
 
 
 # Interpretation of Empirical Logits for Merged Covariates (Post-Refinement)
 
 # 1. Primary Risk Drivers (High Delta, Non-Overlapping CIs):
-# - 'dlaufzeit_merged': Marginal effect size Delta = 1.82 (Extremes: <=6: 1.82 vs. >36: 0.00), adjusted from previous raw Delta = 2.17 (Extremes: <=6: 1.82 vs. 43-48: -0.35) due to outlier mitigation. Extremes exhibit no CI overlap. The structural breaks caused by previous tail sparsity are resolved, yielding a strictly monotonic downward trend. The maximum CI width is reduced to 1.28 (Bin 25-30), effectively eliminating estimation noise.
+# - 'dlaufzeit_merged': Marginal effect size Delta = 1.82 (Extremes: <=6: 1.82 vs. >36: 0.00), adjusted from previous raw Delta = 2.17 (Extremes: <=6: 1.82 vs. 43-48: -0.35) due to integration of outliers in dense bins. Extremes show no CI overlap. The structural break caused by sparsity is weakend, yielding a strictly monotonic downward trend. The maximum CI width is reduced to 1.28 (Bin 25-30), eliminating estimation noise.
 
 # - 'moral' (Unmerged): Marginal effect size Delta = 2.12 (Extremes: Level 4: 1.49 vs. Level 0: -0.63). Extremes exhibit no CI overlap. Bin 1 exhibits a CI width of 1.50 due to data sparsity (n = 27). The plot overall shows a strictly monotonic upward trend.
 
 # - 'laufkont' (Unmerged): Marginal effect size Delta = 1.73 (Extremes: Level 4: 1.86 vs. Level 1: 0.13). Extremes exhibit no CI overlap. Bin 3 exhibits a CI width > 1.30 due to moderate data sparsity (n = 43). The plot overall shows a strictly monotonic upward trend.
 
 # 2. Secondary Risk Driver (Moderate Delta, Structural Non-Linearity):
-# - 'dalter_merged': Concave, approximately quadratic structure (leading coefficient < 0). Marginal effect size Delta = 0.69 (Extremes: 40-59: 1.02 vs. <=25: 0.33), reduced from previous raw Delta = 0.88 (Extremes: 60-64: 1.21 vs. <=25: 0.33). Extreme categories still exhibit substantial CI overlap. Merging the right tail (>=60) eliminated the noisy plateau and stabilized the maximum CI width to 1.42, preserving the structural shape while reducing dimensionality.
+# - 'dalter_merged': Concave, approximately quadratic structure (leading coefficient < 0). Marginal effect size Delta = 0.69 (Extremes: 40-59: 1.02 vs. <=25: 0.33), reduced from previous raw Delta = 0.88 (Extremes: 60-64: 1.21 vs. <=25: 0.33). Extreme categories exhibit CI overlap. Merging right tail (>=60) weakend noisy plateau and reduced the maximum CI width to 1.42. 
 
 # 3. Weak Risk Driver (Low Delta, Severe CI Overlap):
-# - 'beruf_merged': Marginal effect size Delta = 0.41 (Extremes: Level 3: 0.93 vs. Level 4: 0.52), adjusted from previous raw Delta = 0.49 (Extremes: Level 3: 0.93 vs. Level 1: 0.44). CI overlaps persist across all levels, indicating weak predictive discrimination. Nevertheless, merging levels 1 and 2 successfully eliminated the masking effect of the former level 1 (CI width > 2.00). The maximum CI width is now stabilized at 0.68 (Level 1_2).
+# - 'beruf_merged': Marginal effect size Delta = 0.41 (Extremes: Level 3: 0.93 vs. Level 4: 0.52), adjusted from previous raw Delta = 0.49 (Extremes: Level 3: 0.93 vs. Level 1: 0.44). CI overlaps persist across all levels, indicating weak predictive effect on response. Merging levels 1 and 2 weakened masking effect of level 1 bin (CI width > 2.00). The maximum CI width was reduced to 0.68 (Level 1_2).
 
 
 # 5.4.2 Interaction Effects Comparison (Before vs. After)
@@ -659,12 +655,10 @@ p_inter_dlauf_merged_moral <- plot_interaction_profile(
   "Merged Duration (dlaufzeit_merged)", "Payment Habits\n(moral)"
 )
 
-
 p_inter_dlauf_merged_laufkont <- plot_interaction_profile(
   credit_agg, dlaufzeit_merged, laufkont, 
   "Merged Duration (dlaufzeit_merged)", "Account Status\n(laufkont)"
 )
-
 
 p_inter_alter_merged_dlauf_merged <- plot_interaction_profile(
   credit_agg, dalter_merged, dlaufzeit_merged, 
@@ -677,13 +671,11 @@ comparison_inter_dlauf_moral <- p_inter_dlauf_moral + p_inter_dlauf_merged_moral
 
 ggsave("output/figures/comparison_inter_dlauf_moral.png", plot = comparison_inter_dlauf_moral, width = 14, height = 6, dpi = 300)
 
-
 # Comparison: Laufzeit vs. Laufkont (Raw vs. Merged)
 comparison_inter_dlauf_laufkont <- p_inter_dlauf_laufkont + p_inter_dlauf_merged_laufkont + theme(axis.title.y = element_blank()) +
   plot_layout(guides = "collect")
 
 ggsave("output/figures/comparison_inter_dlauf_laufkont.png", plot = comparison_inter_dlauf_laufkont, width = 14, height = 6, dpi = 300)
-
 
 # Comparison: Alter vs. Laufzeit (Raw vs. Merged)
 comparison_inter_alter_laufzeit <- p_inter_alter_laufzeit + p_inter_alter_merged_dlauf_merged + theme(axis.title.y = element_blank()) +
@@ -725,23 +717,22 @@ write.csv(
   eda_interaction_comparison, 
   "output/tables/eda_interaction_comparison.csv", 
   row.names = FALSE, 
-  na = "" # Leaves NA cells blank
+  na = ""
 )
 
-# Print for inspection
 print(eda_interaction_comparison)
 
 # Interpretation: 
 # Merged Duration (dlaufzeit_merged) vs. Moral:
-# All duration bins exhibit broadly parallel trend in trajectories. The artificial line intersections and visual deviations in the right tail (previously driven by raw bins >36 months, such as the spike of 'moral' 3 at 43-48 with a CI width > 5.00 logits) where weakened by the new '>36' aggregate. The maximum CI width in this merged tail is now reduced to 3.82 logits for 'moral' 1 (L: -1.06, U: 2.76, n = 4). Remaining line crossings (e.g., 'moral' 1 crossing 'moral' 3) are driven by 2D combinatorial cell sparsity with near-complete CI overlap. Non-parallelism is indistinguishable from estimation variance. Hence, no robust visual evidence for interaction.
+# All duration bins exhibit nearly parallel trend in trajectories. The line intersections and deviations in the right tail (previously driven by raw bins >36 months, such as the spike of 'moral' 3 at 43-48 with a CI width > 5.00 logits) were weakened by the new '>36' aggregate. The maximum CI width in aggregated '> 36' bin is reduced to 3.82 logits for bin 1 w.r.t. 'moral' (L: -1.06, U: 2.76, n = 4). Remaining intersections of lines (e.g., 'moral' 1 crossing 'moral' 3) are driven by 2D combinatorial cell sparsity with near-complete CI overlap, which indicates high uncertainity. Non-parallelism is indistinguishable from estimation variance. Hence, no robust visual indication for interaction.
 
 # Merged Duration (dlaufzeit_merged) vs. Laufkont:
-# All duration bins exhibit broadly parallel downward trends. The CI widths in the new '>36' bin are substantially stabilized for dense categories (e.g., 'laufkont' 2 CI width is reduced to 1.52; L: -1.06, U: 0.46, n = 26). Extreme visual deviations are now strictly isolated to naturally sparse 2D cells (e.g., 'laufkont' 3 at '>36' months with n = 2 yields a masking CI width of 6.08 logits; L: -1.43, U: 4.65). Since structural trajectories follow nearly parallel trend and deviations are bounded by combinatorial variance, there is no robust visual evidence for interaction.
+# All duration bins show broadly parallel downward trends. The CI widths in the new '>36' bin are stabilized for dense categories (e.g., 'laufkont' 2 CI width is reduced to 1.52; L: -1.06, U: 0.46, n = 26). Extreme visual deviations are caused by sparse 2D cells (e.g., 'laufkont' 3 at '>36' months with n = 2 yields a masking CI width of 6.08 logits; L: -1.43, U: 4.65). All in all: Structural trajectories follow nearly parallel trend and deviations are bounded by combinatorial variance, there is no robust visual indication for interaction.
 
 # Merged Age (dalter_merged) vs. Merged Duration (dlaufzeit_merged)
-# The previously high estimation variance is reduced. By merging both covariates' sparse tails (Age >=60, Duration >36), the trajectories show nearly parallel trend. The CI width in the joint extreme tail (Age >=60 at Duration >36) is equal to 4.52 logits (L: -2.26, U: 2.26, n = 2), rather caused by combinatorial 2D sparsity than marginal instability. Structural differences are indistinguishable from statistical noise. No robust visual evidence for interaction.
+# The estimation variance is reduced. Merging sparse bins of the underlying covariates (Age >=60, Duration >36), yields that the trajectories show nearly parallel trend. The CI width in the joint extreme tail (Age >=60 at Duration >36) is equal to 4.52 logits (L: -2.26, U: 2.26, n = 2), rather caused by combinatorial 2D sparsity than marginal instability. Structural differences are indistinguishable from statistical noise. No robust visual indication for interaction.
 
-
+# Note: The influence of the investigated interaction effects on the response is formally checked in the next chapter
 
 # 6. Model Specification -------------------------------------------------------
 # Main Goal: Predictive performance
@@ -761,13 +752,12 @@ mod_l_cont   <- glm(cbind(kredit, no_kredit) ~ laufzeit, data = credit_agg, fami
 mod_l_raw    <- glm(cbind(kredit, no_kredit) ~ dlaufzeit, data = credit_agg, family = binomial(link = "logit"))
 mod_l_merged <- glm(cbind(kredit, no_kredit) ~ dlaufzeit_merged, data = credit_agg, family = binomial(link = "logit"))
 
-AIC(mod_l_cont, mod_l_raw, mod_l_merged, k = log(n_indiv)) # 819.45, 863,75, 851.56 as BIC -> Decision for continous version of 'laufzeit'
+AIC(mod_l_cont, mod_l_raw, mod_l_merged, k = log(n_indiv)) # 819.45, 863,75, 851.56 as BIC -> Decision for continuous version of 'laufzeit'
 AIC(mod_l_cont, mod_l_raw, mod_l_merged, k = 2) # 810.35, 818.25, 819.71 as AIC -> Decision for continous version of 'laufzeit'
-# Interpretation: Consistent with the GAM results (strictly linear smooth), the continuous specification 'laufzeit' outperformes both discretizations in BIC and AIC.
+# Interpretation: Consistent with the GAM results (strictly linear smooth), the continuous specification 'laufzeit' outperforms both discretizations in BIC and AIC.
 # We proceed with 'laufzeit'.
 
 # Functional Form Selection: Alter
-
 mod_a_lin    <- glm(cbind(kredit, no_kredit) ~ alter, data = credit_agg, family = binomial(link = "logit"))
 mod_a_quad   <- glm(cbind(kredit, no_kredit) ~ alter + I(alter^2), data = credit_agg, family = binomial(link = "logit"))
 mod_a_raw    <- glm(cbind(kredit, no_kredit) ~ dalter, data = credit_agg, family = binomial(link = "logit"))
@@ -780,7 +770,6 @@ AIC(mod_a_lin, mod_a_quad , mod_a_raw, mod_a_merged, k = 2) # 832.29, 830.77, 83
 # We proceed with 'alter' (quadratic).
 
 # Functional Form Selection: Beruf
-
 mod_b_raw    <- glm(cbind(kredit, no_kredit) ~ beruf, data = credit_agg, family = binomial(link = "logit"))
 mod_b_merged <- glm(cbind(kredit, no_kredit) ~ beruf_merged, data = credit_agg, family = binomial(link = "logit"))
 
@@ -933,15 +922,15 @@ AIC(model_final_without_interaction, model_inter_laufzeit_moral, k = log(n_indiv
 AIC(model_final_without_interaction, model_inter_laufzeit_moral, k = 2) # 730.57, 727.35 -> \Delta = 3.22
 
 # Final Conclusion on Interaction Effects:
-# 1. Statistical Metrics: The LRT (p = 0.02411) and a minor AIC reduction (\Delta AIC = 3.22) provide weak support for the 'laufzeit:moral' interaction. Conversely, the BIC penalizes the parameter expansion, rejecting the interaction (\Delta BIC = +14.97).
-# 2. EDA: The weak in-sample significance of the interaction term captures residual statistical noise, not a true structural effect. As discussed in the EDA-section, apparent non-parallel trajectories are strictly isolated to 2D combinatorial cell sparsity (n <= 2) and are masked by CI widths > 4.00 logits. 
-# 3. Decision: To prevent overfitting to local noise artifacts and to maximize out-of-sample robustness, the strict parsimony of the BIC is prioritized. The interaction term is excluded.
-# 
-# Final Model: The main effects specification (laufzeit + laufkont + moral) is selected as the definitive predictive model.
+# 1. Statistical Metrics: The weak p-value p = 0.02411 in LRT and the minor AIC reduction (\Delta AIC = 3.22) provide weak support for the 'laufzeit:moral' interaction. Conversely, the BIC penalizes the parameter expansion, rejecting the interaction (\Delta BIC = +14.97).
+# 2. EDA: The weak in-sample significance of the interaction term is likely driven by statistical noise rather than a true structural effect. As discussed in the EDA-section, non-parallel trajectories are strictly isolated to 2D combinatorial cell sparsity (n <= 2) and are masked by CI widths > 4.00 logits. 
+# 3. Decision: To prevent overfitting and to maximize out-of-sample robustness, the interaction term 'laufzeit:moral' is excluded
+
+# Final Model: The main effects specification (laufzeit + laufkont + moral) is selected as the predictive model.
 model_main <- model_final_without_interaction
 summary(model_main)
 
-# 7.3 Model Parameters (Coefficients, Odds Ratios, Confidence Intervals)
+# Model Parameters (Coefficients, Odds Ratios, Confidence Intervals)
 or_table <- data.frame(
   term = names(coef(model_main)),
   estimate = coef(model_main),
@@ -960,3 +949,22 @@ write.csv(
 # whereas odds ratios < 1 indicate lower odds of repayment (higher risk).
 # For factor variables, odds ratios are interpreted relative
 # to the respective reference category documented above.
+
+# Export final metrics
+final_metrics <- data.frame(
+  Model_Specification = c("Null Model", "Main Effects (BIC penalty)", "Main Effects (AIC penalty)"),
+  Degrees_of_Freedom = c(model_null$rank, model_raw_stepwise_forward_bic$rank, model_main$rank),
+  Residual_Deviance = c(model_null$deviance, model_raw_stepwise_forward_bic$deviance, model_main$deviance),
+  AIC_Score = c(AIC(model_null), AIC(model_raw_stepwise_forward_bic), AIC(model_main)),
+  BIC_Score = c(BIC(model_null), BIC(model_raw_stepwise_forward_bic), BIC(model_main))
+)
+
+write.csv(
+  final_metrics, 
+  "output/tables/final_model_selection_metrics.csv", 
+  row.names = FALSE
+)
+
+# Export raw splits for out-of-sample evaluation
+saveRDS(data_train, "output/data_train.rds")
+saveRDS(data_test, "output/data_test.rds")
