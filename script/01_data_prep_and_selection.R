@@ -580,7 +580,7 @@ library(patchwork)
 
 p_dlaufzeit_merged <- plot_emp_logit(credit_agg, dlaufzeit_merged, "Merged Duration (dlaufzeit_merged)")
 p_dalter_merged    <- plot_emp_logit(credit_agg, dalter_merged, "Merged Age (dalter_merged)")
-p_beruf_merged     <- plot_emp_logit(credit_agg, beruf_merged, "Merged Occupation (beruf_merged)")
+p_beruf_merged     <- plot_emp_logit(credit_agg, beruf_merged, "Merged Occupation (beruf_merged)", FALSE)
 
 comparison_dlaufzeit <- p_dlaufzeit + p_dlaufzeit_merged
 comparison_dalter <- p_dalter + p_dalter_merged
