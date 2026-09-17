@@ -58,8 +58,7 @@ credit_candidate <- credit[, c("kredit", "laufzeit", "dlaufzeit", "moral", "lauf
 credit_candidate <- credit_candidate %>%
   mutate(no_kredit = 1 - kredit)
 
-# Categorical variables are modeled as unordered factors to avoid imposing a 
-# strictly linear, equidistant effect across categories.
+# Factorization to avoid linear relationship along the categories
 credit_candidate$moral <- as.factor(credit_candidate$moral)
 credit_candidate$laufkont <- as.factor(credit_candidate$laufkont)
 credit_candidate$beruf <- as.factor(credit_candidate$beruf)
@@ -141,21 +140,26 @@ prop.table(table(data_train$dlaufzeit))
 # Objective: Visualize the marginal effect on response by plotting empirical logits
 
 # Helper function to calculate and plot empirical logits for categorical variables
-plot_emp_logit <- function(df, grouping_var, var_label) {
-  df %>%
+plot_emp_logit <- function(df, grouping_var, var_label, is_ordinal = TRUE) {
+  p <- df %>%
     group_by({{ grouping_var }}) %>%
     summarise(
       kredit = sum(kredit),
       no_kredit = sum(no_kredit),
       .groups = "drop"
     ) %>%
+    # Approximate CIs calculated via delta method with correction of 0.5 on both outcome scales
     mutate(
       emp_logit = log((kredit + 0.5) / (no_kredit + 0.5)),
       se_emp_logit = sqrt(1/(kredit + 0.5) + 1/(no_kredit + 0.5)),
       ci_lower = emp_logit - qnorm(0.975) * se_emp_logit,
       ci_upper = emp_logit + qnorm(0.975) * se_emp_logit
     ) %>%
-    ggplot(aes(x = {{ grouping_var }}, y = emp_logit)) +
+    ggplot(aes(x = {{ grouping_var }}, y = emp_logit, group = 1))
+  if(is_ordinal) {
+    p <- p + geom_line(color = "#2c3e50", linetype = "dashed", alpha = 0.6)
+  }
+  p +
     geom_point(color = "#2c3e50", size = 3) +
     geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, color = "#2c3e50") +
     theme_light() +
@@ -164,13 +168,13 @@ plot_emp_logit <- function(df, grouping_var, var_label) {
 }
 
 # Generate and save plots
-p_moral <- plot_emp_logit(credit_agg, moral, "Payment History (moral)")
+p_moral <- plot_emp_logit(credit_agg, moral, "Payment History (moral)", is_ordinal = FALSE)
 ggsave("output/figures/eda_emp_logit_moral.png", plot = p_moral, width = 6, height = 4, dpi = 300)
 
-p_laufkont <- plot_emp_logit(credit_agg, laufkont, "Account Status (laufkont)")
+p_laufkont <- plot_emp_logit(credit_agg, laufkont, "Account Status (laufkont)", is_ordinal = FALSE)
 ggsave("output/figures/eda_emp_logit_laufkont.png", plot = p_laufkont, width = 6, height = 4, dpi = 300)
 
-p_beruf <- plot_emp_logit(credit_agg, beruf, "Occupation (beruf)")
+p_beruf <- plot_emp_logit(credit_agg, beruf, "Occupation (beruf)", is_ordinal = FALSE)
 ggsave("output/figures/eda_emp_logit_beruf.png", plot = p_beruf, width = 6, height = 4, dpi = 300)
 
 # Evaluate expert-discretized continuous variables
