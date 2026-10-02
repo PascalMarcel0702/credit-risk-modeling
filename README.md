@@ -101,13 +101,13 @@ The underlying design matrix has full rank ($=26 = p$),hence the log-likelihood 
 
 ---
 
-## Exploratory Data Analysis & Functional Form Assessment
+## Exploratory Data Analysis
 First, an exploratory analysis is exercised to differentiate the risk profiles by considering the empirical logits within their approximated confidence intervals. Moreover, interaction effects are regarded. Last, functional form checks for the continuous covariates are exercised.
 This section builds the foundation for developing hypothesis for data trends by taking statistical noise into account.
 
 ### Categorical Predictors
 
-There exist no empty categories, but sparse ones ($< 5 % $ of data records):
+For the categorical features, there exist no empty categories, but sparse ones ($< 5 % $ of data records):
 
 *   `moral`: level 1 contains approx. $3.8%$
 *   `beruf`: level 1 contains approx. $1.9%$
@@ -115,8 +115,37 @@ There exist no empty categories, but sparse ones ($< 5 % $ of data records):
 *   `laufzeit`: duration $>36$ months are fragmented - the range $49 - 54$ contains approx. 0.3% and $37-42$ and $>54$ contain in total $2.7%$
 
 
-These sparse ranges result in high estimation variances and consequently large confidence interval (CI) widths. If neighboring bins of a covariate have similar effects on response (similar empirical logits with overlapping CIs), the categories can be merged, if it makes sense in the context.
-Since `moral` captures crucial qualitative risk categories at its lower levels, no category of this covariate will be merged.
+These sparse ranges result in high estimation variances and consequently large confidence interval (CI) widths. If neighboring bins of a covariate have similar effects on response, the categories can be merged, if it makes sense in the business context.
+For instance, `moral` captures crucial qualitative risk categories at its lower levels, thus merging categories can eliminate critical risk differentiation.
+
+
+#### Marginal effects 
+In the following the empirical logits for the categorical variables together with its approximate confidence intervals (CIs) are plotted.To prevent undefined values (caused by $y_j = 0$ or $y_j = n_j$), a continuity correction is applied:
+
+$$
+\text{Empirical Logit}_j = \ln\left(\frac{y_j + 0.5}{n_j-y_j+0.5}\right)
+$$
+
+The approximate CIs are derived via the Delta method and constructed as:
+
+$$
+\text{Empirical Logit}_j \pm z_{0.975} \cdot \text{SE}(\text{Empirical Logit}_j),
+$$
+
+whereby $z_{0.975}$ denotes the $97.5^\text{th}$ percentile of the standard normal distribution and the standard error of the j$^{\text{th}}$ empirical logit is defined by
+
+$$
+\text{SE}(\text{Empirical Logit}_j)^2 = \frac{1}{y_j + 0.5} + \frac{1}{n_j - y_j + 0.5}.
+$$
+
+
+Detailed tabular summaries including bin sizes and approximate CIs are exported to 
+[`output/tables/eda_empirical_logits_summary.csv`](output/tables/eda_empirical_logits_summary.csv). For the detailed comparison between the merged and unmerged version of `dlaufzeit`, `dalter` and `beruf`, see [`output/tables/eda_empirical_logits_comparison.csv`](output/tables/eda_empirical_logits_comparison.csv).
+
+
+The empirical logits in combination with their approximate CIs are plotted for each covariate across all its bins to visually assess its influence on the response. Similar logits across categories accompanied by overlapping CIs indicate similar effects on the response. The covariates are ranked according to the largest logit-deltas across their categories. These deltas are interpreted together with their CIs.
+
+
 
 ##### 1. Primary Risk Drivers (High Delta, No Overlapping CIs)
 
@@ -175,8 +204,8 @@ The plots for `dalter` and `dalter_merged` exhibit a concave, approximately quad
 
 The CI of category $1$ (CI width $> 2.00$, L: $-0.63$, U: $1.51$, $n = 13$) absorbs the CIs of all categories in the plot regarding `beruf`, caused by data sparsity. Merging categories $1$ and $2$ is valid, since both represent households with the lowest income and qualification level, only differing in having a permanent residence. This aggregation weakened the masking effect of the level $1$ bin and reduced the maximum CI width to $0.68$ (level $1\_2$, L: $0.47$, U: $1.15$, $n = 153$). Despite the data aggregation, CI overlaps persist across all levels, indicating a weak predictive effect on the response and providing no significant risk distinction across the categories.
  
-#### Empirical logits - interaction effects
-In the following the combined empirical logit plots for non-parallel trends are investigated to visually detect possible interaction terms.
+#### Interaction effects
+In the following the combined empirical logit plots for non-parallel trends are investigated to visually detect possible interaction terms. The empirical logits and their approximate CIs are calculated analogously as for the marginal effects.
 Instead of regarding all combinations, the strongest main effects driven by hypotheses are analyzed.
 Detailed tabular summaries including bin sizes and approximate CIs are exported to 
 [`output/tables/eda_interaction_summary.csv`](output/tables/eda_interaction_summary.csv). For the detailed comparison between the merged and unmerged interaction plots, see [`output/tables/eda_interaction_comparison.csv`](output/tables/eda_empirical_logits_comparison.csv).
@@ -238,66 +267,28 @@ Across both plots, structural differences are indistinguishable from statistical
 
 
 #### Continuous Predictors
+The only continuous covariates under consideration are `alter` and `laufzeit`. Their influence on the response was examined in the previous section, where their discretized versions were considered.
+For instance, the logit plot for `dalter` showed a concave quadratic shape, whereas the one for `dlaufzeit` revealed a linear decreasing trend. In the following, the relationship of these covariates with the response is further investigated using Generalized Additive Models (GAMs).
 
-The functional form of the continuous predictors was assessed using Generalized Additive Models (GAMs) with smoothing splines. The non-parametric ANOVA test evaluates whether the flexible GAM provides significant evidence of deviation from a linear relationship. The reported `P(Chi)` is the corresponding p-value.
+#### Functional Form Assessment
+To assess the functional form, the `gam` function from the `mgcv` package is utilized to estimate the shape of the covariates via smoothing splines. The Estimated Degrees of Freedom (EDF) correspond to the complexity of the estimated shape.
 
-| Predictor      | GAM assessment                      | `P(Chi)` | Decision             |
-| :------------- | :---------------------------------- | :------: | :------------------- |
-| **`alter`**    | Mildly non-linear visual pattern    |   0.110  | Linear term retained |
-| **`laufzeit`** | Approximately linear downward trend |   0.347  | Linear term retained |
+| Predictor | EDF | p-value | GAM Assessment | Decision |
+| :--- | :--- | :--- | :--- | :--- |
+| **`alter`** | $1.903$ | $0.0246$ | Significant non-linear (approx. quadratic) relationship | Investigate quadratic transformation |
+| **`laufzeit`** | $1.000$ | $< 0.001$ | Significant linear downward trend | Retain linear main effect |
 
 <p align="center">
   <img src="output/figures/gam_continuous_predictors.png" width="90%" alt="Functional Form of Continuous Predictors">
 </p>
 
-**Figure:** GAM smooths for `alter` and `laufzeit`. The estimated relationships do not provide statistically significant evidence for non-linearity.
+**Figure:** GAM smooths for continuous predictors. The marginal effect of `alter` yields an EDF of $1.903$, which corresponds to the approximately quadratic structure previously recognized by the empirical logit plots. Similarly, the marginal effect of `laufzeit`  (EDF of $1.000$) evidences the linear trend on the log-odds.
 
-With $\alpha = 0.05$, neither predictor shows statistically significant evidence of non-linearity. Both are therefore specified as linear main effects.
-
-
-
-
-
-
-
-#### Interaction Diagnostics
-Potential interactions were assessed using empirical logit plots with a continuity correction:
-
-$$
-\text{Empirical Logit}_i = \ln\left(\frac{y_i + 0.5}{n_i-y_i+0.5}\right)
-$$
-
-While non-parallel lines in such plots argue for the presence of interaction effects, they must always be considered together with their confidence bands to avoid misinterpreting random noise resulting from data sparsity.
-To ensure a robust visual interpretation, asymptotic 95% confidence limits were derived using the standard normal quantile ($z_{\alpha/2}$).
-The precision of each empirical logit depends on its asymptotic variance, calculated as:
-
-$$
-\widehat{Var}(\text{Empirical Logit}_i) = \frac{1}{y_i + 0.5} + \frac{1}{n_i - y_i + 0.5}
-$$
-
-These variances were used as inverse weights in a LOESS smoothing algorithm to generate the confidence bands for the continuous trend. To evaluate whether the continuous variable `laufzeit` interacts with the strongest categorical main effects (`moral` and `laufkont`), the empirical logits were plotted across their respective categories.
-
-*1. Interaction Check: Laufzeit vs. Moral*
-<p align="center">
-  <img src="output/figures/eda_interaction_laufzeit_moral.png" width="70%" alt="Interaction Check: Laufzeit vs. Moral">
-</p>
-
-* Categories 2 and 4 cover the vast majority of data (82.3%) and show roughly parallel downward trends with narrow confidence bands.
-* Deviations in categories 0 (4.0%), 1 (4.9%), and 3 (8.8%) stem from data sparsity and high variance. This is visually confirmed by their wide confidence bands.
-* Conclusion: The core population exhibits parallel trends and there is no strong evidence of non-parallelism in sparse groups. An additive main-effects framework is justified.
-
-*2. Interaction Check: Laufzeit vs. Laufkont*
-<p align="center">
-  <img src="output/figures/eda_interaction_laufzeit_laufkont.png" width="70%" alt="Interaction Check: Laufzeit vs. Laufkont">
-</p>
-
-* Categories 1 (27.4%), 2 (26.9%), and 4 (39.4%) are well-represented and exhibit a generally parallel downward trend.
-*  Apparent deviations, such as the non-monotonic shape in the sparse category 3 (6.3%) or boundary fluctuations at higher durations, fall entirely within the wide 95% confidence bands.
-* Conclusion: No systemic interaction pattern across main groups within the margins; an additive model prevents overfitting.
+Consequently, a quadratic polynomial transformation for `alter` and the additive effect of `laufzeit` are investigated in the subsequent model selection phase.
 
 ---
 
-## Model Selection and Comparison
+## Model Selection and Comparison < Adjustment below needed>
 
 ### AIC and BIC
 Candidate variables are evaluated sequentially using both the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC). Both criteria balance model fit against complexity, with BIC applying a stricter penalty for the number of estimated parameters ($k$) based on the sample size ($n = 654$):
