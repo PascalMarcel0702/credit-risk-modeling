@@ -505,7 +505,7 @@ print(eda_interaction_master)
 
 # 5.4 Data Refinement: Category Merging based on EDA ---------------------------
 # Data sparsity (e.g., dlaufzeit >36,dalter >=60, and beruf level 1), rises variance of estimates and thus leads to large CIs. If neighbooring bins of a covariate have similar effects on response (similar empirical logits with overlapping CIs), the categories can be merged, if it makes sense in the context
-# -> Bias-Variance-Trade-off: Loss of stability at boundaries against win of overall stability, in particular at dense regions.
+# -> Bias-Variance-Trade-off:
 # Note: merging categories reduces the number of parameters leading to lower BIC in the model selection phase next chapter.
 
 #Note on covariates moral and laufkont:
@@ -637,7 +637,7 @@ print(eda_emp_logit_comparison)
 # Interpretation of Empirical Logits for Merged Covariates (Post-Refinement)
 
 # 1. Primary Risk Drivers (High Delta, Non-Overlapping CIs):
-# - 'dlaufzeit_merged': Marginal effect size Delta = 1.82 (Extremes: <=6: 1.82 vs. >36: 0.00), adjusted from previous raw Delta = 2.17 (Extremes: <=6: 1.82 vs. 43-48: -0.35) due to integration of outliers in dense bins. Extremes show no CI overlap. The structural break caused by sparsity is weakend, yielding a strictly monotonic downward trend. The maximum CI width is reduced to 1.28 (Bin 25-30), eliminating estimation noise.
+# - 'dlaufzeit_merged': Marginal effect size Delta = 1.82 (Extremes: <=6: 1.82 vs. >36: 0.00), adjusted from previous raw Delta = 2.17 (Extremes: <=6: 1.82 vs. 43-48: -0.35) due to integration of outliers in dense bins. Extremes show no CI overlap. The structural break caused by sparsity is weakened, yielding a strictly monotonic downward trend. The maximum CI width is reduced to 1.28 (Bin 25-30), eliminating estimation noise.
 
 # - 'moral' (Unmerged): Marginal effect size Delta = 2.12 (Extremes: Level 4: 1.49 vs. Level 0: -0.63). Extremes exhibit no CI overlap. Bin 1 exhibits a CI width of 1.50 due to data sparsity (n = 27). The plot overall shows a strictly monotonic upward trend.
 

@@ -1,12 +1,11 @@
 # Credit Default Modeling and Classification
 
-This project develops a logistic regression model for credit default prediction with respect to consumer credits. To avoiding overfitting, an iterative EDA is performed to access the statistical noise influencing the data. To evaluate the model performance the underlying data set is split into training- and test data. For the interpretation of model business implications, an average interest rate as well as a loss of capital quote is used to estimate a threshold for rejecting a loan by taking the asymmetric costs into account.
+This project develops a logistic regression model for credit default prediction with respect to consumer credits. An iterative EDA is performed to access the statistical noise influencing the data and builds the basis for the model selection. For the interpretation of model business implications, an average interest rate as well as a loss of capital quote is used to estimate a threshold for rejecting a loan by taking the asymmetric costs into account.
 
 ### Data & Variable Definitions
 
-The dataset contains 1,000 credit observations and is documented by the LMU. The original variable definitions and category descriptions are provided in the [dataset documentation](https://data.ub.uni-muenchen.de/23/1/DETAILS.html).
-
-The model uses the following predictors:
+The dataset contains 1,000 credit observations and is documented by the LMU ( [See dataset documentation](https://data.ub.uni-muenchen.de/23/1/DETAILS.html)).
+The following predictors are considered:
 
  Variable | Description | Type |
 | :--- | :--- | :--- |
@@ -18,10 +17,10 @@ The model uses the following predictors:
 | `dalter` | Expert-discretized borrower age | Categorical (Ordinal) |
 | `beruf` | Occupation | Categorical (Ordinal) |
 
-The continuous variables age and credit duration (`dalter`, `dlaufzeit`) occure binned in the data documentation.
+The continuous variables age and credit duration (`dalter`, `dlaufzeit`) ocure binned in the data documentation.
 
 
-The observations are split into 700 training data, with 654 unique covariate profiles, and 300 test data. For the trainings data, categorical variables show differences in category frequencies:
+The observations are split into 700 training data, with 654 unique covariate profiles, and 300 test data. For the training data, categorical variables show differences in category frequencies:
 
 
 | Variable | Category 0 | Category 1 | Category 2 | Category 3 | Category 4 |
@@ -30,7 +29,7 @@ The observations are split into 700 training data, with 654 unique covariate pro
 | `laufkont` | - | 27.1% | 27.0% | 6.1% | 39.6% |
 | `beruf` | - | 1.8% | 20.0% | 63.5% | 14.6% |
 
-The frequencies for the discretised versions of the continuous predictors are given as:
+The frequencies for the discretized versions of the continuous predictors are given as:
 
 *   `dalter`: `<=25` (18.9%), `26-39` (51.8%), `40-59` (23.9%), `60-64` (3.3%), `>=65` (2.1%)
 *   `dlaufzeit`: `<=6` (8.6%), `7-12` (26.8%), `13-18` (18.6%), `19-24` (23.3%), `25-30` (5.7%), `31-36` (8.4%), `37-42` (1.3%), `43-48` (5.6%), `49-54` (0.3%), `>54` (1.4%)
@@ -72,7 +71,7 @@ The response is binary distributed, therefore the model has to predict labels in
 
 *   **Flexible Threshold:** The link function maps the unbounded linear predictor $\eta_i \in \mathbb{R}$ to conditional probabilities allowing the use of a threshold that can be optimized to the underlying business structure.
 *   **Interpretability:** Using the logic link allows the interpretation of unstructured probabilities and odds ratios for a handy risk differentiation with respect to categorical predictors.
-*   **Algorithmic Stability:** The log-likelihood function of the binomial logistic regression model is strictly concave, provided the design matrix has full column rank. This property guarantees a unique global maximum, which results in more robust computation in the iterated least squares algorithm for parameter estimation, since the theoretical existence of the regression parameters exist..
+*   **Algorithmic Stability:** The log-likelihood function of the binomial logistic regression model is strictly concave, provided the design matrix has full column rank. This property guarantees a unique global maximum, which results in more robust computation in the iterated least squares algorithm for parameter estimation, since the theoretical existence of the regression parameters is guaranteed.
 
 ### Data Aggregation
 Identical covariate profiles within the training set are aggregated into grouped binomial observations:
@@ -83,15 +82,15 @@ $$Y_j \sim \text{Binomial}(n_j,\pi_j)$$
 *   **$Y_j$**: Observed number of proper loan repayments within profile $j$.
 *   **$\pi_j$**: Profile-specific conditional probability of repayment.
 
-Grouping binary responses into binomial ones ensures the residual deviance and Pearson statistics follow an approximate $\chi^2$ distribution under the assumption of correct model specification, since the number of parameters is fixed relative to the sample size.
-Note that the residual deviance cannot be used to evaluated goodness of fit for binary data.
+This has the advantage that the residual deviance and Pearson statistics follow an approximate $\chi^2$ distribution under the assumption of correct model specification, since the number of parameters is fixed relative to the sample size.
+Otherwise, residual deviance could not be used to evaluated goodness of fit.
 
 ### Mathematical Foundation
-Let $\pi_j = P(\text{kredit}_j = 1 \mid \mathbf{x}_j)$ denote the conditional probability of a repayment for the covariate profile $j$. The linear predictor $\eta_j = \mathbf{x}_j^\top\boldsymbol{\beta}$ connects thhis probability with the underlying profile $j$ via the canonical logit link:
+Let $\pi_j = P(\text{kredit}_j = 1 \mid \mathbf{x}_j)$ be the conditional probability of a repayment for the covariate profile $j$. The linear predictor $\eta_j = \mathbf{x}_j^\top\boldsymbol{\beta}$ connects this probability with the underlying profile $j$ via the canonical logit link function:
 
 $$ \pi_j = \frac{1}{1+\exp(-\eta_j)} \iff \log\left(\frac{\pi_j}{1-\pi_j}\right) = \mathbf{x}_j^\top\boldsymbol{\beta} $$
 
-This equivalence illustrates the dual structural of the chosen model: the left equation bounds the predicted probabilities to the $(0, 1)$ interval, while the right equation guarantees a strict linear relationship between the predictors and the log-odds.
+The left equation bounds the predicted probabilities to the $(0, 1)$ interval, while the right equation guarantees a strict linear relationship between the predictors and the log-odds.
 
 With the aggregated binomial data structure $Y_j \sim \text{Binomial}(n_j, \pi_j)$, the regression coefficients are estimated by maximizing the binomial log-likelihood:
 
@@ -108,7 +107,7 @@ This section builds the foundation for developing hypothesis for data trends by 
 
 ### Categorical Predictors
 
-There exist no empty categories, but sparse ones ($< 5%$ of data records):
+There exist no empty categories, but sparse ones ($< 5 % $ of data records):
 
 *   `moral`: level 1 contains approx. $3.8%$
 *   `beruf`: level 1 contains approx. $1.9%$
@@ -116,16 +115,8 @@ There exist no empty categories, but sparse ones ($< 5%$ of data records):
 *   `laufzeit`: duration $>36$ months are fragmented - the range $49 - 54$ contains approx. 0.3% and $37-42$ and $>54$ contain in total $2.7%$
 
 
-These sparse ranges result in high estimation variances and consequently large confidence interval (CI) withds, i.e., high uncertainty. 
-Merging of categories reduces estimated variance by enlarging the sample size (Bias-variance trade off) and reduces the model complexity by three parameters.
-
+These sparse ranges result in high estimation variances and consequently large confidence interval (CI) widths. If neighboring bins of a covariate have similar effects on response (similar empirical logits with overlapping CIs), the categories can be merged, if it makes sense in the context.
 Since `moral` captures crucial qualitative risk categories at its lower levels, no category of this covariate will be merged.
-
-#### Empirical logits (marginal effects)
-In the following the empirical logits for the categorical variables are plotted. In combination with their approximately CIs, the effects of a single covariate variable on the response is visually derived.
-
-Detailed tabular summaries including bin sizes and approximate CIs are exported to 
-[`output/tables/eda_empirical_logits_summary.csv`](output/tables/eda_empirical_logits_summary.csv). For the detailed comparison between the merged and unmerged version of `dlaufzeit`, `dalter`and `beruf`, see [`output/tables/eda_empirical_logits_comparison.csv`](output/tables/eda_empirical_logits_comparison.csv).
 
 ##### 1. Primary Risk Drivers (High Delta, No Overlapping CIs)
 
@@ -134,7 +125,7 @@ Detailed tabular summaries including bin sizes and approximate CIs are exported 
   <img src="output/figures/comparison_dlaufzeit.png" width="90%" alt="Functional Form of Continuous Predictors">
 </p>
 
-**Figure:** Logit extremes yielding delta of $2.17$ in both plots (ranging from $1.82$ in bin $\le 6$ to $-0.35$ in bin $43-48$). For `dlaufzeit`, due to data sparsity in range of $>36$ months, there are structural breaks in the downward trend (e.g., spike to $1.73$ at $37-42$ months bin). Maximum CI width in category $49-54$ is approximately $4.52$ (L: $-2.26$, U: $2.26$) and absorbs the CIs of bins $43-48$ and $> 54$. These categories exhibit similar empirical logits with overlapping CIs and thus an analogous effect on the response. The plot for `dlaufzeit_merged` shows in the right tail (aggregation of the four sparse categories, $n = 60$, empirical logit $= 0$) a stabilization in the CI width ($1.00$, L: $-0.5$, U: $0.5$) and overall trend.
+**Figure:** Logit extremes yielding delta of $2.17$ in both plots (ranging from $1.82$ in bin $\le 6$ to $-0.35$ in bin $43-48$). For `dlaufzeit`, due to data sparsity in range of $>36$ months, there are structural breaks in the downward trend (e.g., spike to $1.73$ at $37-42$ months bin). Maximum CI width in category $49-54$ is approximately $4.52$ (L: $-2.26$, U: $2.26$, $n = 2$) and absorbs the CIs of bins $43-48$ and $> 54$. These categories exhibit similar empirical logits with overlapping CIs and thus an analogous effect on the response. The plot for `dlaufzeit_merged` shows in the right tail (aggregation of the four sparse categories, $n = 60$, empirical logit $= 0$) a stabilization in the CI width of $1.00$ (L: $-0.50$, U: $0.50$) and overall trend.
 
 Both plots show an overall downward trend indicating that in total, the default risk rises with higher loan duration according to this data set. 
 
@@ -146,7 +137,7 @@ Note: The empirical logit of bin $19-24$ does not provide a structural break in 
   <img src="output/figures/eda_emp_logit_moral.png" width="45%" alt="Functional Form of Continuous Predictors">
 </p>
 
-**Figure:** Marginal effect size delta of $2.12$ (extremes: level $4$: $1.49$ vs. level $0$: $-0.63$), with extremes in level $4$ and level $0$, exhibiting no CI overlap. Maximum CI width of $1.50$ due to data sparsity ($n = 27$) given in category $1$.
+**Figure:** Marginal effect size delta of $2.12$ (extremes: level $4$: $1.49$ vs. level $0$: $-0.63$), with extremes in level $4$ and level $0$, exhibiting no CI overlap. Maximum CI width of $1.50$ (L: $-0.97$, U: $0.53$, $n = 27$) due to data sparsity is given in category $1$.
 
 The plot shows overall a monotonic increasing trend between extreme categories $0$ (hesitant) and $4$ (clean), indicating that positive payment history rises the empirical repayment probability. The CIs of category $1$ and $2$ are disjoint and its empirical logits showing the highest increase between all categories, visually representing a distinction of the empirical repayment probability between consumers with negative and positive credit history. 
 
@@ -158,7 +149,7 @@ Note: The empirical logit of category $3$ is less than the one of category $2$. 
   <img src="output/figures/eda_emp_logit_laufkont.png" width="45%" alt="Functional Form of Continuous Predictors">
 </p>
 
-**Figure:** Marginal effect size delta of $1.73$ (extremes: level $4$: $1.86$ vs. level $1$: $0.13$), with extremes in level $4$ and level $1$, exhibiting no CI overlap. Bin $3$ shows a CI width $>1.30$ due to moderate data sparsity ($n = 43$) resulting in higher estimated variance.
+**Figure:** Marginal effect size delta of $1.73$ (extremes: level $4$: $1.86$ vs. level $1$: $0.13$), with extremes in level $4$ and level $1$, exhibiting no CI overlap. Bin $3$ shows a CI width $>1.30$ (L: $0.37$, U: $1.71$, $n = 43$) due to moderate data sparsity resulting in higher estimated variance.
 
 The plot overall shows a monotonic upward trend with no structural breaks, indicating that an existing and covered bank account (bin $4$) increases the empirical repayment probability. All neighboring CIs are significantly overlapping, providing no clear distinction between adjacent categories. Nevertheless, the extremes visually separate high and low risk profiles.
 
@@ -170,7 +161,7 @@ The plot overall shows a monotonic upward trend with no structural breaks, indic
   <img src="output/figures/comparison_dalter.png" width="90%" alt="Functional Form of Continuous Predictors">
 </p>
 
-**Figure:** The marginal effect size delta is about $0.88$ (extremes: $1.21$ in bin $60-64$ vs. $0.33$ in bin $\le 25$). These categories show a substantial CI overlap. Bins $60-64$ ($3.3\%$) and $\ge 65$ ($2.1\%$) exhibit CI widths $>1.75$ (maximum CI width in category $\ge 65$ is $2.06$, L: $-0.38$, U: $1.68$) due to high estimation variance caused by data sparsity. Despite the aggregation, the plot for `dalter_merged` shows high estimated variance in the right tail (aggregation of the two sparse upper categories, $n = 38$, empirical logit $= 1.00$, CI width $= 1.42$, L: $0.29$, U: $1.71$), since the CI absorbs the CIs of bins $26-39$ and $40-59$ and strongly overlaps with the CI of category $\le 25$.
+**Figure:** The marginal effect size delta is about $0.88$ (extremes: $1.21$ in bin $60-64$ vs. $0.33$ in bin $\le 25$). These categories show a substantial CI overlap. Bins $60-64$ ($3.3\%$) and $\ge 65$ ($2.1\%$) exhibit CI widths $>1.75$ (maximum CI width in category $\ge 65$ is $2.06$, L: $-0.38$, U: $1.68$, $n = 15$) due to high estimation variance caused by data sparsity. Despite the aggregation, the plot for `dalter_merged` shows high estimated variance in the right tail (aggregation of the two sparse upper categories, $n = 38$, empirical logit of $1.00$, and CI width of $1.42$, L: $0.29$, U: $1.71$), since the CI absorbs the CIs of bins $26-39$ and $40-59$ and strongly overlaps with the CI of category $\le 25$.
 
 The plots for `dalter` and `dalter_merged` exhibit a concave, approximately quadratic structure. The categories $\le 25$ and $26-39$ have nearly distinct CIs and provide the only significant steep increase in empirical logits, visually indicating a distinction of the repayment rate between very low age groups and all others. This provides a higher baseline risk for very young borrowers, whereas the empirical repayment rate stabilizes and plateaus across all other age bins.
 
@@ -182,20 +173,69 @@ The plots for `dalter` and `dalter_merged` exhibit a concave, approximately quad
 
 **Figure:** Marginal effect size delta for the merged plot is about $0.41$ (extremes: level $3$: $0.93$ vs. level $4$: $0.52$), adjusted from a delta of $0.49$ (extremes: level $3$: $0.93$ vs. level $1$: $0.44$) from the raw plot. 
 
-The CI of category $1$ (CI width $> 2.00$) absorbs the CIs of all categories in the plot regarding `beruf`, caused by data sparsity. Merging categories $1$ and $2$ is valid, since both represent households with the lowest income and qualification level, only differing in having a permanent residence. This aggregation weakened the masking effect of the level $1$ bin and reduced the maximum CI width to $0.68$ (level $1\_2$). Despite the data aggregation, CI overlaps persist across all levels, indicating a weak predictive effect on the response and providing no significant risk distinction across the categories.
+The CI of category $1$ (CI width $> 2.00$, L: $-0.63$, U: $1.51$, $n = 13$) absorbs the CIs of all categories in the plot regarding `beruf`, caused by data sparsity. Merging categories $1$ and $2$ is valid, since both represent households with the lowest income and qualification level, only differing in having a permanent residence. This aggregation weakened the masking effect of the level $1$ bin and reduced the maximum CI width to $0.68$ (level $1\_2$, L: $0.47$, U: $1.15$, $n = 153$). Despite the data aggregation, CI overlaps persist across all levels, indicating a weak predictive effect on the response and providing no significant risk distinction across the categories.
  
+#### Empirical logits - interaction effects
+In the following the combined empirical logit plots for non-parallel trends are investigated to visually detect possible interaction terms.
+Instead of regarding all combinations, the strongest main effects driven by hypotheses are analyzed.
+Detailed tabular summaries including bin sizes and approximate CIs are exported to 
+[`output/tables/eda_interaction_summary.csv`](output/tables/eda_interaction_summary.csv). For the detailed comparison between the merged and unmerged interaction plots, see [`output/tables/eda_interaction_comparison.csv`](output/tables/eda_empirical_logits_comparison.csv).
 
------- Below: Adjustment needed
+##### Laufzeit vs. Moral
+The longer a loan runs (higher maturity), the higher the underlying risk of unforeseen life events (unemployment, illness).
+Does an excellent credit history (moral = 4) provide better protection against this long-term risk than a critical history (moral = 0)?
 
 <p align="center">
-  <img src="output/figures/eda_catplot_beruf.png" width="32%">
-  <img src="output/figures/eda_catplot_laufkont.png" width="32%">
-  <img src="output/figures/eda_catplot_moral.png" width="32%">
+  <img src="output/figures/comparison_inter_dlauf_moral.png" width="90%" alt="Functional Form of Continuous Predictors">
 </p>
 
-**Figure:** Marginal effects of the categorical predictors. `laufkont` shows a clear, approximately linear upward trend, indicating higher repayment odds for better account statuses. `moral` exhibits an overall upward trend with minor non-monotonic deviations, while `beruf` shows no clear directional pattern.
+**Figure:** All duration bins exhibit broadly parallel trajectories. In the raw plot, line intersections (e.g., `moral` 0 crossing `moral` 3 at $37-42$ months) are driven by sparse cells ($n = 1$) with near-complete CI overlap. Visual deviations, such as the steep drop of `moral` 1 at $25-30$ months, are masked by CI widths $> 6.00$ logits (L: $-4.30$, U: $2.10$, $n = 1$). Similarly, the spike of `moral` 3 at $43-48$ months corresponds to a CI width $> 5.00$ logits (L: $-1.01$, U: $4.91$, $n = 1$). Data sparsity in duration bins $>36$ months yields overlapping CIs $> 4.00$ logits across categories. In the merged version, all duration bins maintain a nearly parallel trend. Deviations and line intersections in the right tail were weakened by the $>36$ aggregate, which reduced the maximum CI width in this aggregated bin to $3.82$ logits for `moral` 1 (L: $-1.06$, U: $2.76$, $n = 4$). Remaining line intersections are driven by 2D combinatorial cell sparsity with near-complete CI overlap, indicating high uncertainty. 
 
-Given the sparse representation of several categories, particularly `beruf` category 1, deviations at the boundaries should be interpreted cautiously as they are associated with substantially higher estimation uncertainty. The three regarded covariates are therefore specified as linear main effects.
+Across both plots, non-parallelism is indistinguishable from estimation variance, providing no robust visual evidence for an interaction effect.
+
+
+
+##### Laufzeit vs. Laufkont
+Account status proxies liquidity; duration defines time-at-risk.
+Does high liquidity offset the risk of long-term loans, or do poor accounts amplify default risk over long durations (e.g., due to debt consolidation)?
+
+<p align="center">
+  <img src="output/figures/comparison_inter_dlauf_laufkont.png" width="90%" alt="Functional Form of Continuous Predictors">
+</p>
+
+**Figure:** All duration bins exhibit broadly parallel downward trends. In the raw plot, line intersections (e.g., `laufkont` 1 crossing `laufkont` 2 at $37-42$ months) are caused by sparse cells ($n \le 3$) and involve near-complete CI overlap. Extreme visual deviations, such as the steep drop of `laufkont` 3 at $25-30$ months, are masked by CI widths $> 5.00$ logits (L: $-4.30$, U: $2.10$, $n = 1$). Moreover, data sparsity in duration bins $>36$ months yields CI widths $> 4.00$ logits across all categories. 
+In the merged version, the structural trajectories maintain a nearly parallel trend. The CI widths in the new $>36$ aggregate are stabilized for dense categories (e.g., the CI width of `laufkont` 2 is reduced to $1.52$, L: $-1.06$, U: $0.46$, $n = 26$). Remaining extreme visual deviations are driven by sparse 2D cells (e.g., `laufkont` 3 at $>36$ months with $n = 2$ yields a masking CI width of $6.08$ logits, L: $-1.43$, U: $4.65$). 
+
+Across both plots, deviations are bounded by combinatorial variance, and non-parallelism is indistinguishable from estimation variance. Hence, there is no robust visual indication for an interaction effect.
+
+#####  Moral vs. Laufkont 
+Current account status represents immediate liquidity, whereas payment history reflects long-term behavioral reliability.
+Can high current liquidity compensate for the default risk of a critical payment history, or does a flawless payer remain low-risk even when currently overdrawn?
+
+<p align="center">
+  <img src="output/figures/eda_interaction_moral_laufkont.png" width="45%" alt="Functional Form of Continuous Predictors">
+</p>
+
+**Figure:** All categories exhibit broadly parallel upward trends. Apparent line intersections (e.g., `laufkont` $1$ crossing `laufkont` $2$ between `moral` $3$ and $4$) involve sparse cells with substantial CI overlap. The visual deviation of `laufkont` $1$ at `moral` $3$ is masked by a CI width of $3.56$ logits ($n = 7$). Extreme outliers, such as the spike of `laufkont` $3$ at `moral` $1$ ($n = 2$), exhibit CI widths $> 6.00$ logits.
+
+Apparent non-parallelism is mainly driven by estimation variance. Therefore, no robust visual evidence for significant interaction effects.
+
+
+#####  Alter vs Laufzeit 
+Risk exposure tends to vary over time depending on one's stage of life (young and volatile vs. middle-aged and financially stable).
+Does the temporal risk of long-term borrowing scale additively across age groups or do extremely young/old borrowers face disproportionate default probabilities over long durations?
+
+<p align="center">
+  <img src="output/figures/comparison_inter_alter_laufzeit.png" width="90%" alt="Functional Form of Continuous Predictors">
+</p>
+
+**Figure:** In the raw plot, some trajectories appear non-parallel (e.g., categories $43-48$ and $49-54$ months). The CIs exhibit near-complete overlap across all age groups, spanning $> 5.00$ logits. The plot is characterized by high estimation variance.
+In the merged version, the estimation variance is reduced. Merging sparse bins of the underlying covariates (age $\ge 60$, duration $> 36$) yields trajectories that show a nearly parallel trend. The CI width in the joint extreme tail (age $\ge 60$ at duration $> 36$) is equal to $4.52$ logits (L: $-2.26$, U: $2.26$, $n = 2$), driven rather by combinatorial 2D sparsity than marginal instability.
+
+Across both plots, structural differences are indistinguishable from statistical noise. Hence, there is no robust visual indication for an interaction effect.
+
+
+
 
 #### Continuous Predictors
 
@@ -213,6 +253,12 @@ The functional form of the continuous predictors was assessed using Generalized 
 **Figure:** GAM smooths for `alter` and `laufzeit`. The estimated relationships do not provide statistically significant evidence for non-linearity.
 
 With $\alpha = 0.05$, neither predictor shows statistically significant evidence of non-linearity. Both are therefore specified as linear main effects.
+
+
+
+
+
+
 
 #### Interaction Diagnostics
 Potential interactions were assessed using empirical logit plots with a continuity correction:
