@@ -505,7 +505,7 @@ print(eda_interaction_master)
 
 # 5.4 Data Refinement: Category Merging based on EDA ---------------------------
 # Data sparsity (e.g., dlaufzeit >36,dalter >=60, and beruf level 1), rises variance of estimates and thus leads to large CIs. If neighbooring bins of a covariate have similar effects on response (similar empirical logits with overlapping CIs), the categories can be merged, if it makes sense in the context
-# -> Bias-Variance-Trade-off:
+# -> Bias-Variance-Trade-off: Loss of stability at bondaries against win of overall stability, in particular at dense regions.
 # Note: merging categories reduces the number of parameters leading to lower BIC in the model selection phase next chapter.
 
 #Note on covariates moral and laufkont:
@@ -783,8 +783,8 @@ AIC(mod_b_raw, mod_b_merged, k = 2)  # 838.43, 836.82
 # We proceed with 'beruf_merged'.
 
 
-# Full model (candidate 1)
-model_full_raw <- glm(
+# Full model
+model_full <- glm(
   cbind(kredit, no_kredit) ~ laufzeit + laufkont + alter + I(alter^2) + beruf + moral, 
   data = credit_agg, 
   family = binomial(link = "logit")
@@ -797,14 +797,14 @@ model_full_raw <- glm(
 model_raw_stepwise_forward_bic <- step(
   object = model_null, 
   direction = "forward", 
-  scope = formula(model_full_raw), 
+  scope = formula(model_full), 
   k = log(n_indiv),
   trace = 1
 )
 summary(model_raw_stepwise_forward_bic)
 
 model_raw_stepwise_backward_bic <- step(
-  object = model_full_raw, 
+  object = model_full, 
   direction = "backward",
   k = log(n_indiv),
   trace = 1
@@ -817,14 +817,14 @@ summary(model_raw_stepwise_backward_bic)
 model_raw_stepwise_forward_aic <- step(
   object = model_null, 
   direction = "forward", 
-  scope = formula(model_full_raw), 
+  scope = formula(model_full), 
   trace = 1
 )
 summary(model_raw_stepwise_forward_aic)
 #Conclusion: laufkont, moral and laufzeit as covariates
 
 model_raw_stepwise_backward_aic <- step(
-  object = model_full_raw, 
+  object = model_full, 
   direction = "backward",
   trace = 1
 )
@@ -849,59 +849,8 @@ AIC(model_raw_stepwise_forward_bic, model_raw_stepwise_forward_aic, k = 2) # 745
 
 
 # Decision: Choose the covariates 'laufkont', 'laufzeit' and 'moral' for the model with raw data.
-model_raw <-  model_raw_stepwise_forward_aic
+model_final_without_interaction  <-  model_raw_stepwise_forward_aic
 
-
-
-# Full model (candidate 2) -----------------------------------------------------------------------------------------------------------------------------------------------------------
-# Expectation: According to EDA, beruf has only small influence on response, hence all 4 types of model selection wont let it enter the final model.
-model_full_merged <- glm(
-  cbind(kredit, no_kredit) ~ laufzeit + laufkont +  alter + I(alter^2) + beruf_merged + moral, 
-  data = credit_agg, 
-  family = binomial(link = "logit")
-)
-
-# BIC (forward- and backward- selection)
-model_merged_stepwise_forward_bic <- step(
-  object = model_null, 
-  direction = "forward", 
-  scope = formula(model_full_merged), 
-  k = log(n_indiv),
-  trace = 1
-)
-summary(model_merged_stepwise_forward_bic)
-
-model_merged_stepwise_backward_bic <- step(
-  object = model_full_merged, 
-  direction = "backward",
-  k = log(n_indiv),
-  trace = 1
-)
-summary(model_merged_stepwise_backward_bic)
-# Conclusion: Both methods yield same result - laufkont and laufzeit as only covariates - same result as for model_full_raw
-
-# AIC (forward- and backward- selection)
-model_merged_stepwise_forward_aic <- step(
-  object = model_null, 
-  direction = "forward", 
-  scope = formula(model_full_merged), 
-  trace = 1
-)
-summary(model_merged_stepwise_forward_aic)
-#Conclusion: laufkont, moral and laufzeit as covariates
-
-model_merged_stepwise_backward_aic <- step(
-  object = model_full_merged, 
-  direction = "backward",
-  trace = 1
-)
-summary(model_merged_stepwise_backward_aic)
-# Conclusion: laufkont, moral,laufzeit and alter + I(alter^2) as covariates
-
-# Conclusion (overall): Same result as for model_full_raw
-
-# Conclusion: Both candidates yield same model under forward / backward selection via AIC / BIC and Likelihood- Ratio- Tests.
-model_final_without_interaction <- model_raw
 
 
 # Interaction Effects --------------------------------------------------------------------------

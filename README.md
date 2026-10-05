@@ -31,8 +31,8 @@ The observations are split into 700 training data, with 654 unique covariate pro
 
 The frequencies for the discretized versions of the continuous predictors are given as:
 
-*   `dalter`: `<=25` (18.9%), `26-39` (51.8%), `40-59` (23.9%), `60-64` (3.3%), `>=65` (2.1%)
-*   `dlaufzeit`: `<=6` (8.6%), `7-12` (26.8%), `13-18` (18.6%), `19-24` (23.3%), `25-30` (5.7%), `31-36` (8.4%), `37-42` (1.3%), `43-48` (5.6%), `49-54` (0.3%), `>54` (1.4%)
+*   `dalter`: `<=25` (18.9%), `26-39` (51.8%), `40-59` (23.9%), `60-64` (3.3%), `$\ge$ 65` (2.1%)
+*   `dlaufzeit`: `$\le$ 6` (8.6%), `7-12` (26.8%), `13-18` (18.6%), `19-24` (23.3%), `25-30` (5.7%), `31-36` (8.4%), `37-42` (1.3%), `43-48` (5.6%), `49-54` (0.3%), `>54` (1.4%)
 
 Specific segments exhibit data sparsity, in particular `beruf` (Category 1) as well as the upper tails of the discretised variables (`dalter` > 60 years and `dlaufzeit` > 36 months).
 The continuous predictors with respect to the training data are summarized using basic descriptive statistics:
@@ -70,7 +70,7 @@ The binary response variable is defined as:
 The response is binary distributed, therefore the model has to predict labels in $\{0, 1\}$. Moreover:
 
 *   **Flexible Threshold:** The link function maps the unbounded linear predictor $\eta_i \in \mathbb{R}$ to conditional probabilities allowing the use of a threshold that can be optimized to the underlying business structure.
-*   **Interpretability:** Using the logic link allows the interpretation of unstructured probabilities and odds ratios for a handy risk differentiation with respect to categorical predictors.
+*   **Interpretability:** Using the logit link allows the interpretation of odds ratios for an intuitive risk differentiation with respect to categorical predictors.
 *   **Algorithmic Stability:** The log-likelihood function of the binomial logistic regression model is strictly concave, provided the design matrix has full column rank. This property guarantees a unique global maximum, which results in more robust computation in the iterated least squares algorithm for parameter estimation, since the theoretical existence of the regression parameters is guaranteed.
 
 ### Data Aggregation
@@ -88,7 +88,7 @@ Otherwise, residual deviance could not be used to evaluated goodness of fit.
 ### Mathematical Foundation
 Let $\pi_j = P(\text{kredit}_j = 1 \mid \mathbf{x}_j)$ be the conditional probability of a repayment for the covariate profile $j$. The linear predictor $\eta_j = \mathbf{x}_j^\top\boldsymbol{\beta}$ connects this probability with the underlying profile $j$ via the canonical logit link function:
 
-$$ \pi_j = \frac{1}{1+\exp(-\eta_j)} \iff \log\left(\frac{\pi_j}{1-\pi_j}\right) = \mathbf{x}_j^\top\boldsymbol{\beta} $$
+$$ \pi_j = \pi(\mathbf{x}_j) = \frac{1}{1+\exp(-\eta_j)} \iff \log\left(\frac{\pi_j}{1-\pi_j}\right) = \mathbf{x}_j^\top\boldsymbol{\beta} $$
 
 The left equation bounds the predicted probabilities to the $(0, 1)$ interval, while the right equation guarantees a strict linear relationship between the predictors and the log-odds.
 
@@ -96,7 +96,7 @@ With the aggregated binomial data structure $Y_j \sim \text{Binomial}(n_j, \pi_j
 
 $$ \ell(\boldsymbol{\beta}) = \sum_{j=1}^{J} \left[ Y_j \log(\pi_j) + (n_j - Y_j) \log(1 - \pi_j) \right] $$
 
-This is equivalent to maximizing the binary log-likelihood for the success probabilities.
+This term differs from the binary log-likelihood for the success probabilities only by a constant, hence maximizing both is equivalent.
 The underlying design matrix has full rank ($=26 = p$),hence the log-likelihood of the binomial response attains an unique maximum resulting in algorithmic stability.
 
 ---
@@ -270,13 +270,13 @@ Across both plots, structural differences are indistinguishable from statistical
 The only continuous covariates under consideration are `alter` and `laufzeit`. Their influence on the response was examined in the previous section, where their discretized versions were considered.
 For instance, the logit plot for `dalter` showed a concave quadratic shape, whereas the one for `dlaufzeit` revealed a linear decreasing trend. In the following, the relationship of these covariates with the response is further investigated using Generalized Additive Models (GAMs).
 
-#### Functional Form Assessment
+##### Functional Form Assessment
 To assess the functional form, the `gam` function from the `mgcv` package is utilized to estimate the shape of the covariates via smoothing splines. The Estimated Degrees of Freedom (EDF) correspond to the complexity of the estimated shape.
 
 | Predictor | EDF | p-value | GAM Assessment | Decision |
 | :--- | :--- | :--- | :--- | :--- |
 | **`alter`** | $1.903$ | $0.0246$ | Significant non-linear (approx. quadratic) relationship | Investigate quadratic transformation |
-| **`laufzeit`** | $1.000$ | $< 0.001$ | Significant linear downward trend | Retain linear main effect |
+| **`laufzeit`** | $1.000$ | $< 0.001$ | Significant linear downward trend | Retain linear main effects |
 
 <p align="center">
   <img src="output/figures/gam_continuous_predictors.png" width="90%" alt="Functional Form of Continuous Predictors">
@@ -288,13 +288,126 @@ Consequently, a quadratic polynomial transformation for `alter` and the additive
 
 ---
 
-## Model Selection and Comparison < Adjustment below needed>
+## Model Selection
+The objective of this section is to build a model based on the previously executed EDA. The goal is to maximize predictive performance while preserving interpretability. 
 
-### AIC and BIC
-Candidate variables are evaluated sequentially using both the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC). Both criteria balance model fit against complexity, with BIC applying a stricter penalty for the number of estimated parameters ($k$) based on the sample size ($n = 654$):
+### Framework and Strategy
+Candidate models are compared and ranked via the Akaike Information Criterion (AIC) as the primary predictive metric, and the Bayesian Information Criterion (BIC) as a sensitivity check.
+Both criteria, AIC and BIC, balance model fit against complexity, while BIC applies a stricter penalty for the number of estimated parameters ($k$) based on the whole sample size ($n = 700$):
+$$
+\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k, \quad \text{BIC} = -2\ell(\hat{\boldsymbol{\beta}}) + \ln(n)k
+$$
+For pre-selecting an appropriate model out of the regarded covariates, stepwise selection via the step() function is executed. The algorithm iteratively adds or drops covariates, computes the AIC / BIC for all candidate models and chooses the one with lowest AIC / BIC.
 
-$$\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k$$
-$$\text{BIC} = -2\ell(\hat{\boldsymbol{\beta}}) + \ln(n)k$$
+Nested candidate models are compared with the Likelihood Ratio Test (LRT). The test statistic $G^2$ is equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
+
+$$G^2 = D_{\text{reduced}} - D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) - \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]$$
+
+Under the assumption that the smaller model is more appropriate, the test statistic $G^2$ follows a $\chi^2$ distribution, where the degrees of freedom correspond to the difference in the number of parameters between the full and the nested model.
+
+
+### Functional Form Selection
+In the following, AIC and BIC of the null model plus one specification of `laufzeit`, `alter` or `beruf` are compared in accordance with the findings in the EDA and GAM analysis.
+
+
+| Predictor | Specification | AIC | BIC |
+| :--- | :--- | :--- | :--- |
+| **`laufzeit`** | Continuous | **810.35** | **819.45** |
+| | Raw (Discretized) | 818.25 | 863.75 |
+| | Merged (Categorical) | 819.71 | 851.56 |
+| **`alter`** | Continuous (Linear) | 832.29 | **841.38** |
+| | Continuous (Quadratic) | **830.77** | 844.42 |
+| | Raw (Discretized) | 833.25 | 856.00 |
+| | Merged (Categorical) | 831.87 | 850.07 |
+| **`beruf`** | Raw (Categorical) | 838.43 | 856.63 |
+| | Merged (Categorical) | **836.82** | **850.47** |
+
+
+Consistent with the GAM results (strictly linear smooth), the continuous specification `laufzeit` significantly outperforms both discretizations in BIC and AIC. 
+
+The linear form of `alter` achieves the lowest BIC and the quadratic form achieves the lowest AIC. 
+Although the merged form yields a similar AIC score, it is outperformed by the linear form in BIC and therefore excluded. The AIC difference of approximately $1.5$ with respect to the linear and quadratic specification only indicates a tiny improvement in model fit. However, in 5.2, the GAM showed a significantly non-linear (quadratic) effect for age. Since the main goal is predictability, the result of AIC is used.
+
+The merged form of `beruf` achieves the lowest AIC and BIC. Therefore, `beruf_merged` is retained.
+
+Consequently, the following full model (without interaction terms) is selected:
+
+$$
+\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{laufkont}_j + \beta_3\,\text{alter}_j + \beta_4\,\text{alter}{_j}^2 + \beta_5\,\text{beruf_merged}_j + \beta_6\,\text{moral}_j
+$$
+
+Note: For notational compactness, categorical predictors are represented as single terms. They are implemented as indicator variables with respect to their underlying reference categories. 
+
+
+### Stepwise Model Selection
+To identify an appropriate baseline model, forward and backward stepwise selection algorithms are applied to the null and full candidate models respectively.
+
+| Criterion | Algorithm Direction | Selected Covariates |
+| :--- | :--- | :--- |
+| **BIC** | Forward, Backward | `laufzeit`, `laufkont` |
+| **AIC** | Forward | `laufzeit`, `laufkont`, `moral` |
+| **AIC** | Backward | `laufzeit`, `laufkont`, `moral`, `alter`, `alter^2` |
+
+Forward and backward selection via AIC yield a different specification. Both models differ from the one achieved with the selection algorithms based on BIC.
+
+### Nested Model Comparison
+Next, these nested models are compared using LRT.
+
+| Baseline Model | Added Covariate(s) | LRT p-value | Conclusion |
+| :--- | :--- | :--- | :--- |
+| `laufzeit` + `laufkont` | `moral` | $< 0.001$ | Significant model improvement. Retain `moral`. |
+| `laufzeit` + `laufkont` + `moral` | `alter` + `alter^2` | $0.171$ | No significant improvement. Exclude age terms. |
+
+The formal tests indicate that `moral` contributes significant predictive information, while the terms of `alter` do not. 
+For a final decision, the AIC and BIC values of the remaining two models are compared:
+
+| Specification | Covariates | AIC | BIC |
+| :--- | :--- | :--- | :--- |
+| Minimal Model | `laufzeit`, `laufkont` | $745.59$ | **$768.34$** |
+| **Main Effects** | `laufzeit`, `laufkont`, `moral` | **$730.57$** | $771.52$
+
+Adding the covariate `moral` yields a positive but not strong BIC penalty ($\Delta = +3.18$). The AIC improvement ($\Delta = -15.02$) is significant. 
+Since the BIC is used as sensitivity check and the main objective is minimizing the out-of-sample error, this result validates the inclusion of `moral`.
+
+The final main effect model is given by:
+
+$$
+\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{laufkont}_j + \beta_3\,\text{moral}_j
+$$
+
+
+### Interaction Effects
+
+The EDA provided no visual indication of significant interaction effects. This hypothesis is evaluated via LRTs by individually adding the regarded interaction terms to the final main effect model.
+
+| Baseline Model | Tested Interaction | LRT p-value | Conclusion |
+| :--- | :--- | :--- | :--- |
+| Main Effects | `laufzeit:laufkont` | $0.727$ | Not significant. Exclude. |
+| Main Effects | `moral:laufkont` | $0.623$ | Not significant. Exclude. |
+| Main Effects | `laufzeit:moral` | $0.024$ | Weakly significant. |
+
+The interaction effect between `laufzeit` and `moral` is further investigated by comparing AIC and BIC values to assess the predictive power under consideration of the additional model complexity.
+
+| Specification | AIC | BIC |
+| :--- | :--- | :--- |
+| Main Effects Model | $730.57$ | **$771.52$** |
+| Main Effects + `laufzeit:moral` | **$727.35$** | $786.49$ |
+
+
+The weak p-value $\text{p} = 0.02411$ in the LRT and the minor AIC reduction ($\Delta \text{AIC} = 3.22$) provide weak support for the interaction term `laufzeit:moral`. Conversely, the BIC penalizes the parameter expansion, rejecting the interaction ($\Delta \text{BIC} = +14.97$).
+The weak in-sample significance of the interaction term is likely driven by statistical noise rather than a true structural effect. As discussed in the EDA-section, non-parallel trajectories are strictly isolated to 2D combinatorial cell sparsity (n $\le 2$) and are masked by CI widths $> 4.00$ logits. Therefore, to prevent overfitting and to maximize out-of-sample robustness, the interaction term `laufzeit:moral` is excluded.
+
+The final predictive model is the strictly parsimonious main effects specification, consisting of the covariates `laufzeit`, `laufkont`, `moral`.
+
+
+
+
+
+
+
+
+# Adjustment below needed
+
 
 Both criteria unanimously selected the identical model:
 

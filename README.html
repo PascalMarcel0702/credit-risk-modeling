@@ -631,8 +631,8 @@ predictor <span class="math inline">\(\eta_j =
 \mathbf{x}_j^\top\boldsymbol{\beta}\)</span> connects this probability
 with the underlying profile <span class="math inline">\(j\)</span> via
 the canonical logit link function:</p>
-<p><span class="math display">\[ \pi_j = \frac{1}{1+\exp(-\eta_j)} \iff
-\log\left(\frac{\pi_j}{1-\pi_j}\right) =
+<p><span class="math display">\[ \pi_j = \pi(\mathbf{x}_j) =
+\frac{1}{1+\exp(-\eta_j)} \iff \log\left(\frac{\pi_j}{1-\pi_j}\right) =
 \mathbf{x}_j^\top\boldsymbol{\beta} \]</span></p>
 <p>The left equation bounds the predicted probabilities to the <span class="math inline">\((0, 1)\)</span> interval, while the right equation
 guarantees a strict linear relationship between the predictors and the
@@ -643,8 +643,9 @@ log-likelihood:</p>
 <p><span class="math display">\[ \ell(\boldsymbol{\beta}) =
 \sum_{j=1}^{J} \left[ Y_j \log(\pi_j) + (n_j - Y_j) \log(1 - \pi_j)
 \right] \]</span></p>
-<p>This is equivalent to maximizing the binary log-likelihood for the
-success probabilities. The underlying design matrix has full rank (<span class="math inline">\(=26 = p\)</span>),hence the log-likelihood of the
+<p>This term differs from the binary log-likelihood for the success
+probabilities only by a constant, hence maximizing both is equivalent.
+The underlying design matrix has full rank (<span class="math inline">\(=26 = p\)</span>),hence the log-likelihood of the
 binomial response attains an unique maximum resulting in algorithmic
 stability.</p>
 <hr />
@@ -963,9 +964,8 @@ versions were considered. For instance, the logit plot for
 for <code>dlaufzeit</code> revealed a linear decreasing trend. In the
 following, the relationship of these covariates with the response is
 further investigated using Generalized Additive Models (GAMs).</p>
-</div>
-<div id="functional-form-assessment" class="section level4">
-<h4>Functional Form Assessment</h4>
+<div id="functional-form-assessment" class="section level5">
+<h5>Functional Form Assessment</h5>
 <p>To assess the functional form, the <code>gam</code> function from the
 <code>mgcv</code> package is utilized to estimate the shape of the
 covariates via smoothing splines. The Estimated Degrees of Freedom (EDF)
@@ -1021,18 +1021,345 @@ investigated in the subsequent model selection phase.</p>
 </div>
 </div>
 </div>
-<div id="model-selection-and-comparison" class="section level2">
-<h2>Model Selection and Comparison</h2>
-<div id="aic-and-bic" class="section level3">
-<h3>AIC and BIC</h3>
-<p>Candidate variables are evaluated sequentially using both the Akaike
-Information Criterion (AIC) and the Bayesian Information Criterion
-(BIC). Both criteria balance model fit against complexity, with BIC
-applying a stricter penalty for the number of estimated parameters
-(<span class="math inline">\(k\)</span>) based on the sample size (<span class="math inline">\(n = 654\)</span>):</p>
-<p><span class="math display">\[\text{AIC} =
--2\ell(\hat{\boldsymbol{\beta}}) + 2k\]</span> <span class="math display">\[\text{BIC} = -2\ell(\hat{\boldsymbol{\beta}}) +
-\ln(n)k\]</span></p>
+</div>
+<div id="model-selection" class="section level2">
+<h2>Model Selection</h2>
+<p>The objective of this section is to build a model upon the previously
+executed EDA. The goal is to maximize predictive performance while
+preserving interpretability.</p>
+<div id="framework-and-strategy" class="section level3">
+<h3>Framework and Strategy</h3>
+<p>Candidate models are compared and ranked via Akaike Information
+Criterion (AIC) as primary predictive metric, and Bayesian Information
+Criterion (BIC) as sensitivity check. Both criteria, AIC and BIC,
+balance model fit against complexity, while BIC applies a stricter
+penalty for the number of estimated parameters (<span class="math inline">\(k\)</span>) based on the whole sample size (<span class="math inline">\(n = 700\)</span>): <span class="math display">\[
+\text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k, \quad \text{BIC} =
+-2\ell(\hat{\boldsymbol{\beta}}) + \ln(n)k
+\]</span> For pre-selecting an appropriate model out of the regarded
+covariates, stepwise selections via the step() function is executed. The
+algorithm adds / drops covariates, computes the AIC / BIC for all
+candidate models and chooses the one with lowest AIC / BIC.</p>
+<p>Nested candidate models are compared with the Likelihood Ratio Test
+(LRT). The test statistic <span class="math inline">\(G^2\)</span> is
+equivalent to the difference in residual deviances (<span class="math inline">\(\Delta D\)</span>) between the reduced and the
+full model:</p>
+<p><span class="math display">\[G^2 = D_{\text{reduced}} -
+D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) -
+\ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]\]</span></p>
+<p>Under the assumption that the smaller model is more appropriate, the
+test statistic <span class="math inline">\(G^2\)</span> follows a <span class="math inline">\(\chi^2\)</span> distribution, where the degrees of
+freedom correspond to the difference of parameters between full and
+nested model.</p>
+</div>
+<div id="functional-form-selection" class="section level3">
+<h3>Functional Form Selection</h3>
+<p>In the following, AIC and BIC of the null model plus one
+specification of <code>laufzeit</code>, <code>alter</code> or
+<code>beruf</code> are compared in accordance with the findings in the
+EDA and GAM analysis.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Predictor</th>
+<th align="left">Specification</th>
+<th align="left">AIC</th>
+<th align="left">BIC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong><code>laufzeit</code></strong></td>
+<td align="left">Continuous</td>
+<td align="left"><strong>810.35</strong></td>
+<td align="left"><strong>819.45</strong></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">Raw (Discretized)</td>
+<td align="left">818.25</td>
+<td align="left">863.75</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">Merged (Categorical)</td>
+<td align="left">819.71</td>
+<td align="left">851.56</td>
+</tr>
+<tr class="even">
+<td align="left"><strong><code>alter</code></strong></td>
+<td align="left">Continuous (Linear)</td>
+<td align="left">832.29</td>
+<td align="left"><strong>841.38</strong></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">Continuous (Quadratic)</td>
+<td align="left"><strong>830.77</strong></td>
+<td align="left">844.42</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">Raw (Discretized)</td>
+<td align="left">833.25</td>
+<td align="left">856.00</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">Merged (Categorical)</td>
+<td align="left">831.87</td>
+<td align="left">850.07</td>
+</tr>
+<tr class="even">
+<td align="left"><strong><code>beruf</code></strong></td>
+<td align="left">Raw (Categorical)</td>
+<td align="left">838.43</td>
+<td align="left">856.63</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">Merged (Categorical)</td>
+<td align="left"><strong>836.82</strong></td>
+<td align="left"><strong>850.47</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Consistent with the GAM results (strictly linear smooth), the
+continuous specification <code>laufzeit</code> significantly outperforms
+both discretizations in BIC and AIC.</p>
+<p>The linear form of <code>alter</code> achieves the lowest BIC and the
+quadratic form achieves the lowest in AIC. Although the merged form
+yields a similar AIC score, it is outperformed by the linear form in BIC
+and therefore excluded. The AIC difference of approximately <span class="math inline">\(1.5\)</span> w.r.t. the linear and quadratic
+specification only indicates a tiny improvement in model fit. However,
+in 5.2, the GAM showed a significantly non-linear (quadratic) effect for
+age. Since the main goal is predictability, the result of AIC is
+used.</p>
+<p>The merged form of <code>beruf</code> achieves the lowest AIC and
+BIC. Therefore, <code>beruf_merged</code> is retained.</p>
+<p>Therefore, the following full model (without interaction terms) is
+selected:</p>
+<p><span class="math display">\[
+\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j +
+\beta_2\,\text{laufkont}_j + \beta_3\,\text{alter}_j +
+\beta_4\,\text{alter}{_j}^2 + \beta_5\,\text{beruf_merged}_j +
+\beta_6\,\text{moral}_j
+\]</span></p>
+<p>Note: For notational compactness, categorical predictors are
+represented as single terms. They are implemented as indicator variables
+with respect to their underlying reference categories.</p>
+</div>
+<div id="stepwise-model-selection" class="section level3">
+<h3>Stepwise Model Selection</h3>
+<p>To identify an appropriate baseline model, forward and backward
+stepwise selection algorithms are applied to the null and full candidate
+model respectively.</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Criterion</th>
+<th align="left">Algorithm Direction</th>
+<th align="left">Selected Covariates</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>BIC</strong></td>
+<td align="left">Forward, Backward</td>
+<td align="left"><code>laufzeit</code>, <code>laufkont</code></td>
+</tr>
+<tr class="even">
+<td align="left"><strong>AIC</strong></td>
+<td align="left">Forward</td>
+<td align="left"><code>laufzeit</code>, <code>laufkont</code>,
+<code>moral</code></td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>AIC</strong></td>
+<td align="left">Backward</td>
+<td align="left"><code>laufzeit</code>, <code>laufkont</code>,
+<code>moral</code>, <code>alter</code>, <code>alter^2</code></td>
+</tr>
+</tbody>
+</table>
+<p>Forward and backward selection via AIC yield a different
+specification. Both models differ from the one achieved with the
+selection algorithms based on BIC.</p>
+</div>
+<div id="nested-model-comparison" class="section level3">
+<h3>Nested Model Comparison</h3>
+<p>Next, these nested models are compared using LRT.</p>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Baseline Model</th>
+<th align="left">Added Covariate(s)</th>
+<th align="left">LRT p-value</th>
+<th align="left">Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>laufzeit</code> + <code>laufkont</code></td>
+<td align="left"><code>moral</code></td>
+<td align="left"><span class="math inline">\(&lt; 0.001\)</span></td>
+<td align="left">Significant model improvement. Retain
+<code>moral</code>.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>laufzeit</code> + <code>laufkont</code> +
+<code>moral</code></td>
+<td align="left"><code>alter</code> + <code>alter^2</code></td>
+<td align="left"><span class="math inline">\(0.171\)</span></td>
+<td align="left">No significant improvement. Exclude age terms.</td>
+</tr>
+</tbody>
+</table>
+<p>The formal tests indicate that <code>moral</code> contributes a
+significant predictive information, while the quadratic effect of
+<code>alter</code> does not. For a final decision, the AIC and BIC
+values of the remaining two models are compared:</p>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Specification</th>
+<th align="left">Covariates</th>
+<th align="left">AIC</th>
+<th align="left">BIC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Minimal Model</td>
+<td align="left"><code>laufzeit</code>, <code>laufkont</code></td>
+<td align="left"><span class="math inline">\(745.59\)</span></td>
+<td align="left"><strong><span class="math inline">\(768.34\)</span></strong></td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Main Effects</strong></td>
+<td align="left"><code>laufzeit</code>, <code>laufkont</code>,
+<code>moral</code></td>
+<td align="left"><strong><span class="math inline">\(730.57\)</span></strong></td>
+<td align="left"><span class="math inline">\(771.52\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Adding the covariate <code>moral</code> yields a positive but not
+strong BIC penalty (<span class="math inline">\(\Delta =
++3.18\)</span>). The AIC improvement (<span class="math inline">\(\Delta
+= -15.02\)</span>) of is significant. Since the BIC is used as
+sensitivity check and the main objective is minimizing the out of sample
+error, this result validates the inclusion of <code>moral</code>.</p>
+<p>The final main effect model is given by:</p>
+<p><span class="math display">\[
+\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j +
+\beta_2\,\text{laufkont}_j + \beta_3\,\text{moral}_j
+\]</span></p>
+</div>
+<div id="interaction-effects-1" class="section level3">
+<h3>Interaction Effects</h3>
+<p>The EDA provided no visual indication for significant interaction
+effect. This developed hypothesis is evaluated via LRTs by individually
+adding the regarded interaction terms to the final main effect
+model.</p>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Baseline Model</th>
+<th align="left">Tested Interaction</th>
+<th align="left">LRT p-value</th>
+<th align="left">Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Main Effects</td>
+<td align="left"><code>laufzeit:laufkont</code></td>
+<td align="left"><span class="math inline">\(0.727\)</span></td>
+<td align="left">Not significant. Exclude.</td>
+</tr>
+<tr class="even">
+<td align="left">Main Effects</td>
+<td align="left"><code>moral:laufkont</code></td>
+<td align="left"><span class="math inline">\(0.623\)</span></td>
+<td align="left">Not significant. Exclude.</td>
+</tr>
+<tr class="odd">
+<td align="left">Main Effects</td>
+<td align="left"><code>laufzeit:moral</code></td>
+<td align="left"><span class="math inline">\(0.024\)</span></td>
+<td align="left">Weakly significant.</td>
+</tr>
+</tbody>
+</table>
+<p>The interaction effect between <code>laufzeit</code> and
+<code>moral</code> is further investigated by comparing AIC and BIC
+values to assess the predictive power under consideration of the
+additional model complexity.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Specification</th>
+<th align="left">AIC</th>
+<th align="left">BIC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Main Effects Model</td>
+<td align="left"><span class="math inline">\(730.57\)</span></td>
+<td align="left"><strong><span class="math inline">\(771.52\)</span></strong></td>
+</tr>
+<tr class="even">
+<td align="left">Main Effects + <code>laufzeit:moral</code></td>
+<td align="left"><strong><span class="math inline">\(727.35\)</span></strong></td>
+<td align="left"><span class="math inline">\(786.49\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The weak p-value <span class="math inline">\(\text{p} =
+0.02411\)</span> in LRT and the minor AIC reduction (<span class="math inline">\(\Delta(\text{AIC}) = 3.22\)</span>) provide weak
+support for the interaction term <code>laufzeit:moral</code>.
+Conversely, the BIC penalizes the parameter expansion, rejecting the
+interaction (<span class="math inline">\(\Delta(\text{BIC}) =
++14.97\)</span>). The weak in-sample significance of the interaction
+term is likely driven by statistical noise rather than a true structural
+effect. As discussed in the EDA-section, non-parallel trajectories are
+strictly isolated to 2D combinatorial cell sparsity (n <span class="math inline">\(&lt;= 2\)</span>) and are masked by CI widths
+<span class="math inline">\(&gt; 4.00\)</span> logits. Therefore, to
+prevent overfitting and to maximize out-of-sample robustness, the
+interaction term <code>laufzeit:moral</code> is excluded.</p>
+<p>The final predictive model is the final main effect model, consisting
+of the covariates <code>laufzeit</code>, <code>laufkont</code>,
+<code>moral</code>.</p>
+</div>
+</div>
+</div>
+<div id="adjustment-below-needed" class="section level1">
+<h1>Adjustment below needed</h1>
 <p>Both criteria unanimously selected the identical model:</p>
 <p><span class="math display">\[\text{logit}(\pi_j) = \beta_0 +
 \beta_1\,\text{laufzeit}_j + \beta_2\,\text{moral}_j +
@@ -1045,7 +1372,6 @@ inclusion failed to improve the likelihood sufficiently to overcome
 either complexity penalty. This unanimous selection underscores the
 robustness of the retained predictors and their significant
 informational contribution to the model.</p>
-</div>
 <div id="likelihood-ratio-tests" class="section level3">
 <h3>Likelihood-Ratio Tests</h3>
 <p>Nested models are additionally compared using sequential
@@ -1118,7 +1444,6 @@ predictors</li>
 <li>No non-linear transformations</li>
 <li><h2 id="no-interaction-terms">No interaction terms</h2></li>
 </ul>
-</div>
 </div>
 </div>
 <div id="model-diagnostics" class="section level2">
