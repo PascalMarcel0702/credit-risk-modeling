@@ -785,7 +785,7 @@ AIC(mod_b_raw, mod_b_merged, k = 2)  # 838.43, 836.82
 
 # Full model
 model_full <- glm(
-  cbind(kredit, no_kredit) ~ laufzeit + laufkont + alter + I(alter^2) + beruf + moral, 
+  cbind(kredit, no_kredit) ~ laufzeit + laufkont + alter + I(alter^2) + beruf_merged + moral, 
   data = credit_agg, 
   family = binomial(link = "logit")
 )
