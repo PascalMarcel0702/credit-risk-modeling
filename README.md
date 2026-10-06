@@ -29,12 +29,15 @@ The observations are split into 700 training data, with 654 unique covariate pro
 | `laufkont` | - | 27.1% | 27.0% | 6.1% | 39.6% |
 | `beruf` | - | 1.8% | 20.0% | 63.5% | 14.6% |
 
+
+# <Delete below; Adjustment needed>
 The frequencies for the discretized versions of the continuous predictors are given as:
 
 *   `dalter`: `<=25` (18.9%), `26-39` (51.8%), `40-59` (23.9%), `60-64` (3.3%), `$\ge$ 65` (2.1%)
 *   `dlaufzeit`: `$\le$ 6` (8.6%), `7-12` (26.8%), `13-18` (18.6%), `19-24` (23.3%), `25-30` (5.7%), `31-36` (8.4%), `37-42` (1.3%), `43-48` (5.6%), `49-54` (0.3%), `>54` (1.4%)
 
 Specific segments exhibit data sparsity, in particular `beruf` (Category 1) as well as the upper tails of the discretised variables (`dalter` > 60 years and `dlaufzeit` > 36 months).
+# <Delete upper part; Adjustment needed>
 The continuous predictors with respect to the training data are summarized using basic descriptive statistics:
 
 | Variable | Min | Median | Mean | SD | Max |
@@ -43,11 +46,11 @@ The continuous predictors with respect to the training data are summarized using
 | `alter` | 19 | 33 | 35.4 | 11.3 | 74 |
 
 The binary response variable is defined as:
-
+# <Adjustment needed, centralize the table below>
 | Variable | Description | Coding |
 |---|---|---|
 | `kredit` | Credit repayment status | `1` = repayment, `0` = default |
-
+# <Adjustment needed end>
 
 ### Key Results <need to be adjusted>
 
@@ -90,7 +93,8 @@ Let $\pi_j = P(\text{kredit}_j = 1 \mid \mathbf{x}_j)$ be the conditional probab
 
 $$ \pi_j = \pi(\mathbf{x}_j) = \frac{1}{1+\exp(-\eta_j)} \iff \log\left(\frac{\pi_j}{1-\pi_j}\right) = \mathbf{x}_j^\top\boldsymbol{\beta} $$
 
-The left equation bounds the predicted probabilities to the $(0, 1)$ interval, while the right equation guarantees a strict linear relationship between the predictors and the log-odds.
+The left equation bounds the predicted probabilities to the $(0, 1)$ interval, while the right equation guarantees a strict linear relationship between the predictors and the log-odds ($\ln(o)$, whereby $o = \frac{\pi_j}{1-\pi_j}$ is the odds of success). 
+
 
 With the aggregated binomial data structure $Y_j \sim \text{Binomial}(n_j, \pi_j)$, the regression coefficients are estimated by maximizing the binomial log-likelihood:
 
@@ -111,8 +115,8 @@ For the categorical features, there exist no empty categories, but sparse ones (
 
 *   `moral`: level 1 contains approx. $3.8%$
 *   `beruf`: level 1 contains approx. $1.9%$
-*   `alter`: age groups $>60$, i.e., $60-64$ and $\ge 65$ contain in total approx. 5.4%
-*   `laufzeit`: duration $>36$ months are fragmented - the range $49 - 54$ contains approx. 0.3% and $37-42$ and $>54$ contain in total $2.7%$
+*   `dalter`: age groups $>60$, i.e., $60-64$ and $\ge 65$ contain in total approx. 5.4%
+*   `dlaufzeit`: duration $>36$ months are fragmented - the range $49 - 54$ contains approx. 0.3% and $37-42$ and $>54$ contain in total $2.7%$
 
 
 These sparse ranges result in high estimation variances and consequently large confidence interval (CI) widths. If neighboring bins of a covariate have similar effects on response, the categories can be merged, if it makes sense in the business context.
@@ -124,6 +128,12 @@ In the following the empirical logits for the categorical variables together wit
 
 $$
 \text{Empirical Logit}_j = \ln\left(\frac{y_j + 0.5}{n_j-y_j+0.5}\right)
+$$
+
+Estimating the predicted probabilites $\hat \pi_j = \frac{y_j}{n_j}$ yields for the estimated odds of success:
+
+$$
+\hat \text{o} = \frac{\hat \pi_j}{1 - \hat \pi_j} = \frac{y_j}{n_j - y_j} 
 $$
 
 The approximate CIs are derived via the Delta method and constructed as:
@@ -144,6 +154,7 @@ Detailed tabular summaries including bin sizes and approximate CIs are exported 
 
 
 The empirical logits in combination with their approximate CIs are plotted for each covariate across all its bins to visually assess its influence on the response. Similar logits across categories accompanied by overlapping CIs indicate similar effects on the response. The covariates are ranked according to the largest logit-deltas across their categories. These deltas are interpreted together with their CIs.
+Note on logit-deltas: 
 
 
 
@@ -398,6 +409,31 @@ The weak p-value $\text{p} = 0.02411$ in the LRT and the minor AIC reduction ($\
 The weak in-sample significance of the interaction term is likely driven by statistical noise rather than a true structural effect. As discussed in the EDA-section, non-parallel trajectories are strictly isolated to 2D combinatorial cell sparsity (n $\le 2$) and are masked by CI widths $> 4.00$ logits. Therefore, to prevent overfitting and to maximize out-of-sample robustness, the interaction term `laufzeit:moral` is excluded.
 
 The final predictive model is the strictly parsimonious main effects specification, consisting of the covariates `laufzeit`, `laufkont`, `moral`.
+
+
+### Final Model Metrics
+The estimated coefficients ($\hat{\beta}$) are transformed into Odds Ratios ($\exp(\hat{\beta})$) via the inverse link function. Odds ratios greater than 1 indicate higher odds of repayment and odds ratios less than 1 indicate lower odds of repayment.
+
+
+| Predictor | Level / Unit | Estimate ($\hat{\beta}$) | Odds Ratio | 95% Confidence Interval |
+| :--- | :--- | :--- | :--- | :--- |
+| **(Intercept)** | - | $-0.434$ | $0.648$ | $[0.261, 1.556]$ |
+| **`laufzeit`** | per 1 month | $-0.030$ | $0.970$ | $[0.956, 0.984]$ |
+| **`laufkont`** | Level 1 *(Reference)* | *0.000* | *1.000* | *-* |
+| | Level 2 | $0.452$ | $1.571$ | $[1.021, 2.428]$ |
+| | Level 3 | $0.817$ | $2.263$ | $[1.075, 5.077]$ |
+| | Level 4 | $1.707$ | $5.510$ | $[3.463, 8.917]$ |
+| **`moral`** | Level 0 *(Reference)* | *0.000* | *1.000* | *-* |
+| | Level 1 | $0.434$ | $1.544$ | $[0.513, 4.700]$ |
+| | Level 2 | $1.201$ | $3.324$ | $[1.526, 7.570]$ |
+| | Level 3 | $0.879$ | $2.409$ | $[0.946, 6.373]$ |
+| | Level 4 | $1.724$ | $5.607$ | $[2.449, 13.386]$ |
+
+
+
+## Model Diagnostics
+
+
 
 
 

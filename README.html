@@ -474,8 +474,8 @@ predictors are given as:</p>
 <ul>
 <li><code>dalter</code>: <code>&lt;=25</code> (18.9%),
 <code>26-39</code> (51.8%), <code>40-59</code> (23.9%),
-<code>60-64</code> (3.3%), <code>&gt;=65</code> (2.1%)</li>
-<li><code>dlaufzeit</code>: <code>&lt;=6</code> (8.6%),
+<code>60-64</code> (3.3%), <code>$\ge$ 65</code> (2.1%)</li>
+<li><code>dlaufzeit</code>: <code>$\le$ 6</code> (8.6%),
 <code>7-12</code> (26.8%), <code>13-18</code> (18.6%),
 <code>19-24</code> (23.3%), <code>25-30</code> (5.7%),
 <code>31-36</code> (8.4%), <code>37-42</code> (1.3%), <code>43-48</code>
@@ -591,9 +591,9 @@ unbounded linear predictor <span class="math inline">\(\eta_i \in
 \mathbb{R}\)</span> to conditional probabilities allowing the use of a
 threshold that can be optimized to the underlying business
 structure.</li>
-<li><strong>Interpretability:</strong> Using the logic link allows the
-interpretation of unstructured probabilities and odds ratios for a handy
-risk differentiation with respect to categorical predictors.</li>
+<li><strong>Interpretability:</strong> Using the logit link allows the
+interpretation of odds ratios for an intuitive risk differentiation with
+respect to categorical predictors.</li>
 <li><strong>Algorithmic Stability:</strong> The log-likelihood function
 of the binomial logistic regression model is strictly concave, provided
 the design matrix has full column rank. This property guarantees a
@@ -1001,7 +1001,7 @@ relationship</td>
 <td align="left"><span class="math inline">\(1.000\)</span></td>
 <td align="left"><span class="math inline">\(&lt; 0.001\)</span></td>
 <td align="left">Significant linear downward trend</td>
-<td align="left">Retain linear main effect</td>
+<td align="left">Retain linear main effects</td>
 </tr>
 </tbody>
 </table>
@@ -1024,22 +1024,22 @@ investigated in the subsequent model selection phase.</p>
 </div>
 <div id="model-selection" class="section level2">
 <h2>Model Selection</h2>
-<p>The objective of this section is to build a model upon the previously
-executed EDA. The goal is to maximize predictive performance while
-preserving interpretability.</p>
+<p>The objective of this section is to build a model based on the
+previously executed EDA. The goal is to maximize predictive performance
+while preserving interpretability.</p>
 <div id="framework-and-strategy" class="section level3">
 <h3>Framework and Strategy</h3>
-<p>Candidate models are compared and ranked via Akaike Information
-Criterion (AIC) as primary predictive metric, and Bayesian Information
-Criterion (BIC) as sensitivity check. Both criteria, AIC and BIC,
-balance model fit against complexity, while BIC applies a stricter
-penalty for the number of estimated parameters (<span class="math inline">\(k\)</span>) based on the whole sample size (<span class="math inline">\(n = 700\)</span>): <span class="math display">\[
+<p>Candidate models are compared and ranked via the Akaike Information
+Criterion (AIC) as the primary predictive metric, and the Bayesian
+Information Criterion (BIC) as a sensitivity check. Both criteria, AIC
+and BIC, balance model fit against complexity, while BIC applies a
+stricter penalty for the number of estimated parameters (<span class="math inline">\(k\)</span>) based on the whole sample size (<span class="math inline">\(n = 700\)</span>): <span class="math display">\[
 \text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k, \quad \text{BIC} =
 -2\ell(\hat{\boldsymbol{\beta}}) + \ln(n)k
 \]</span> For pre-selecting an appropriate model out of the regarded
-covariates, stepwise selections via the step() function is executed. The
-algorithm adds / drops covariates, computes the AIC / BIC for all
-candidate models and chooses the one with lowest AIC / BIC.</p>
+covariates, stepwise selection via the step() function is executed. The
+algorithm iteratively adds or drops covariates, computes the AIC / BIC
+for all candidate models and chooses the one with lowest AIC / BIC.</p>
 <p>Nested candidate models are compared with the Likelihood Ratio Test
 (LRT). The test statistic <span class="math inline">\(G^2\)</span> is
 equivalent to the difference in residual deviances (<span class="math inline">\(\Delta D\)</span>) between the reduced and the
@@ -1049,8 +1049,8 @@ D_{\text{full}} = 2\left[ \ell(\hat{\boldsymbol{\beta}}_{\text{full}}) -
 \ell(\hat{\boldsymbol{\beta}}_{\text{reduced}}) \right]\]</span></p>
 <p>Under the assumption that the smaller model is more appropriate, the
 test statistic <span class="math inline">\(G^2\)</span> follows a <span class="math inline">\(\chi^2\)</span> distribution, where the degrees of
-freedom correspond to the difference of parameters between full and
-nested model.</p>
+freedom correspond to the difference in the number of parameters between
+the full and the nested model.</p>
 </div>
 <div id="functional-form-selection" class="section level3">
 <h3>Functional Form Selection</h3>
@@ -1128,16 +1128,16 @@ EDA and GAM analysis.</p>
 continuous specification <code>laufzeit</code> significantly outperforms
 both discretizations in BIC and AIC.</p>
 <p>The linear form of <code>alter</code> achieves the lowest BIC and the
-quadratic form achieves the lowest in AIC. Although the merged form
-yields a similar AIC score, it is outperformed by the linear form in BIC
-and therefore excluded. The AIC difference of approximately <span class="math inline">\(1.5\)</span> w.r.t. the linear and quadratic
-specification only indicates a tiny improvement in model fit. However,
-in 5.2, the GAM showed a significantly non-linear (quadratic) effect for
-age. Since the main goal is predictability, the result of AIC is
-used.</p>
+quadratic form achieves the lowest AIC. Although the merged form yields
+a similar AIC score, it is outperformed by the linear form in BIC and
+therefore excluded. The AIC difference of approximately <span class="math inline">\(1.5\)</span> with respect to the linear and
+quadratic specification only indicates a tiny improvement in model fit.
+However, in 5.2, the GAM showed a significantly non-linear (quadratic)
+effect for age. Since the main goal is predictability, the result of AIC
+is used.</p>
 <p>The merged form of <code>beruf</code> achieves the lowest AIC and
 BIC. Therefore, <code>beruf_merged</code> is retained.</p>
-<p>Therefore, the following full model (without interaction terms) is
+<p>Consequently, the following full model (without interaction terms) is
 selected:</p>
 <p><span class="math display">\[
 \text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j +
@@ -1153,7 +1153,7 @@ with respect to their underlying reference categories.</p>
 <h3>Stepwise Model Selection</h3>
 <p>To identify an appropriate baseline model, forward and backward
 stepwise selection algorithms are applied to the null and full candidate
-model respectively.</p>
+models respectively.</p>
 <table>
 <colgroup>
 <col width="33%" />
@@ -1226,10 +1226,10 @@ selection algorithms based on BIC.</p>
 </tr>
 </tbody>
 </table>
-<p>The formal tests indicate that <code>moral</code> contributes a
-significant predictive information, while the quadratic effect of
-<code>alter</code> does not. For a final decision, the AIC and BIC
-values of the remaining two models are compared:</p>
+<p>The formal tests indicate that <code>moral</code> contributes
+significant predictive information, while the terms of
+<code>alter</code> do not. For a final decision, the AIC and BIC values
+of the remaining two models are compared:</p>
 <table>
 <colgroup>
 <col width="25%" />
@@ -1264,9 +1264,9 @@ values of the remaining two models are compared:</p>
 <p>Adding the covariate <code>moral</code> yields a positive but not
 strong BIC penalty (<span class="math inline">\(\Delta =
 +3.18\)</span>). The AIC improvement (<span class="math inline">\(\Delta
-= -15.02\)</span>) of is significant. Since the BIC is used as
-sensitivity check and the main objective is minimizing the out of sample
-error, this result validates the inclusion of <code>moral</code>.</p>
+= -15.02\)</span>) is significant. Since the BIC is used as sensitivity
+check and the main objective is minimizing the out-of-sample error, this
+result validates the inclusion of <code>moral</code>.</p>
 <p>The final main effect model is given by:</p>
 <p><span class="math display">\[
 \text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j +
@@ -1275,10 +1275,9 @@ error, this result validates the inclusion of <code>moral</code>.</p>
 </div>
 <div id="interaction-effects-1" class="section level3">
 <h3>Interaction Effects</h3>
-<p>The EDA provided no visual indication for significant interaction
-effect. This developed hypothesis is evaluated via LRTs by individually
-adding the regarded interaction terms to the final main effect
-model.</p>
+<p>The EDA provided no visual indication of significant interaction
+effects. This hypothesis is evaluated via LRTs by individually adding
+the regarded interaction terms to the final main effect model.</p>
 <table>
 <colgroup>
 <col width="25%" />
@@ -1341,20 +1340,19 @@ additional model complexity.</p>
 </tbody>
 </table>
 <p>The weak p-value <span class="math inline">\(\text{p} =
-0.02411\)</span> in LRT and the minor AIC reduction (<span class="math inline">\(\Delta(\text{AIC}) = 3.22\)</span>) provide weak
+0.02411\)</span> in the LRT and the minor AIC reduction (<span class="math inline">\(\Delta \text{AIC} = 3.22\)</span>) provide weak
 support for the interaction term <code>laufzeit:moral</code>.
 Conversely, the BIC penalizes the parameter expansion, rejecting the
-interaction (<span class="math inline">\(\Delta(\text{BIC}) =
+interaction (<span class="math inline">\(\Delta \text{BIC} =
 +14.97\)</span>). The weak in-sample significance of the interaction
 term is likely driven by statistical noise rather than a true structural
 effect. As discussed in the EDA-section, non-parallel trajectories are
-strictly isolated to 2D combinatorial cell sparsity (n <span class="math inline">\(&lt;= 2\)</span>) and are masked by CI widths
-<span class="math inline">\(&gt; 4.00\)</span> logits. Therefore, to
-prevent overfitting and to maximize out-of-sample robustness, the
-interaction term <code>laufzeit:moral</code> is excluded.</p>
-<p>The final predictive model is the final main effect model, consisting
-of the covariates <code>laufzeit</code>, <code>laufkont</code>,
-<code>moral</code>.</p>
+strictly isolated to 2D combinatorial cell sparsity (n <span class="math inline">\(\le 2\)</span>) and are masked by CI widths <span class="math inline">\(&gt; 4.00\)</span> logits. Therefore, to prevent
+overfitting and to maximize out-of-sample robustness, the interaction
+term <code>laufzeit:moral</code> is excluded.</p>
+<p>The final predictive model is the strictly parsimonious main effects
+specification, consisting of the covariates <code>laufzeit</code>,
+<code>laufkont</code>, <code>moral</code>.</p>
 </div>
 </div>
 </div>
