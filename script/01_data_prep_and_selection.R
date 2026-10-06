@@ -139,6 +139,68 @@ prop.table(table(data_train$dlaufzeit))
 # 5.1 Categorical Variables (Qualitative)
 # Objective: Visualize the marginal effect on response by plotting empirical logits
 
+# Is continuity correction for marginal empirical logits necessary?
+# Consider a categorical covariate x with k = 1:K categories. Let n_k be the number of obs.and let y_k be the number of repayments for a category k. 
+# Empirical_Logit_k = ln(y_k / (n_k - y_k)) = ln(\pi_k / (1 - \pi_k)) = ln(o_k) is the log odd for category k of this covariate, whereby \pi_k = y_k / n_k is the estimated probability of repayment. This expression is only defined iff y_k \not = 0 or n_k \not = y_k, i. e., iff this category does not display only depts or only repayments.
+
+
+check_logit_integrity <- function(vars, threshold) {
+  # 1. Integrity Check: Hard fail if any cell is exactly 0
+  has_zero_cells <- sapply(vars, function(v) any(table(data_train[[v]], data_train$kredit) == 0))
+  if (any(has_zero_cells)) {
+    stop("Integrity Check failed: One or more categories contain 0 repayments or 0 defaults. Empirical logits are undefined.")
+  }
+  
+  # 2. Sparsity Check: Helper function to find cells below threshold
+  get_sparse_details <- function(v, thresh) {
+    ct <- table(data_train[[v]], data_train$kredit)
+    sparse_rows <- apply(ct, 1, function(row) any(row < thresh))
+    if (any(sparse_rows)) {
+      return(names(sparse_rows)[sparse_rows])
+    }
+    return(NULL)
+  }
+  
+  # Apply sparsity check to all variables
+  sparse_details_list <- lapply(vars, function(v) get_sparse_details(v, threshold))
+  names(sparse_details_list) <- vars
+  
+  # Filter out variables with no sparse cells
+  sparse_details_list <- sparse_details_list[sapply(sparse_details_list, length) > 0]
+  
+  # Generate warning if any sparse cells exist
+  if (length(sparse_details_list) > 0) {
+    warning_msgs <- sapply(names(sparse_details_list), function(v) {
+      cats <- paste(sparse_details_list[[v]], collapse = ", ")
+      paste0("  - Variable '", v, "' in category/categories: [", cats, "]")
+    })
+    
+    warning(paste0(
+      "Sparsity detected! Some cells fall below threshold (", threshold, "):\n",
+      paste(warning_msgs, collapse = "\n")
+    ), call. = FALSE)
+  }
+}
+
+# Define Threshold (1% of observations)
+threshold <- ceiling(nrow(data_train) * 0.01)
+vars <- c("moral", "laufkont", "beruf", "dalter", "dlaufzeit")
+check_logit_integrity(vars = vars, threshold = threshold
+)
+# Result: No continuity correction necessary, but sparse categories exist.
+#'beruf' bin 1
+# 'dalter' bins [60-64, >=65]
+# 'dlaufzeit' bins [37-42, 49-54, >54] 
+
+# Advantage: Use logit difference accross categories as measure to rank covariates according to its influence on response:
+# Let x be a categorical covariate with categories j, k \in {1: K}.
+# Let y_j be number of repayments and n_j number of obs w.r.t. category j.
+# Unbiased estimator for success probabilites: \pi_j = y_j / n_j
+# Let o_j = \pi_j / (1 - \pi_j) the j^th odd of success for covariate x. Then, for category j, a repayment is o_j times more likely than a default.
+# It follows: ln(o_j) = ln(y_j / (n_j - y_j)) = Empirical_Logit_j. 
+# Consequently, Empirical_Logit_j - Empirical_Logit_k = ln(o_j / o_k).
+# Thus, a large maximum logit-delta reveals strong fluctuations in the repayment-to-default odds across categories, identifying the covariate as a strong risk differentiator, whereas a near-zero delta implies homogeneous risk profiles.
+
 # Helper function to calculate and plot empirical logits for categorical variables
 plot_emp_logit <- function(df, grouping_var, var_label, is_ordinal = TRUE) {
   p <- df %>%
@@ -150,8 +212,8 @@ plot_emp_logit <- function(df, grouping_var, var_label, is_ordinal = TRUE) {
     ) %>%
     # Approximate CIs calculated via delta method with correction of 0.5 on both outcome scales
     mutate(
-      emp_logit = log((kredit + 0.5) / (no_kredit + 0.5)),
-      se_emp_logit = sqrt(1/(kredit + 0.5) + 1/(no_kredit + 0.5)),
+      emp_logit = log((kredit) / (no_kredit)),
+      se_emp_logit = sqrt(1/(kredit) + 1/(no_kredit)),
       ci_lower = emp_logit - qnorm(0.975) * se_emp_logit,
       ci_upper = emp_logit + qnorm(0.975) * se_emp_logit
     ) %>%
@@ -199,8 +261,8 @@ generate_emp_logit_table <- function(df, grouping_var, var_name) {
       .groups = "drop"
     ) %>%
     mutate(
-      `Empir. logits` = round(log((kredit + 0.5) / (no_kredit + 0.5)), 2),
-      se_emp_logit = sqrt(1/(kredit + 0.5) + 1/(no_kredit + 0.5)),
+      `Empir. logits` = round(log((kredit) / (no_kredit)), 2),
+      se_emp_logit = sqrt(1/(kredit) + 1/(no_kredit)),
       `L` = round(`Empir. logits` - qnorm(0.975) * se_emp_logit, 2),
       `U` = round(`Empir. logits` + qnorm(0.975) * se_emp_logit, 2)
     ) %>%
@@ -252,17 +314,17 @@ print(eda_emp_logit_master)
 # Interpretation of Empirical Logits by Logit-Delta and CI separation
 
 # 1. Primary Risk Drivers (High Delta, Non-Overlapping CIs):
-# - 'dlaufzeit': Marginal effect size Delta = 2.17 (Extremes: <=6: 1.82 vs. 43-48: -0.35). Extremes exhibit no CI overlap. Bins >48 months and 37-42 exhibit CI widths > 2.00 due to data sparsity (n <= 10). Regarding this, the plot overall shows a monotonic downward trend.
+# - 'dlaufzeit': Marginal effect size Delta = 2.23 (Extremes: <=6: 1.87 vs. 43-48: -0.36). Extremes exhibit no CI overlap. Bins >48 months and 37-42 exhibit CI widths > 2.48 due to data sparsity (n <= 10). Regarding this, the plot overall shows a monotonic downward trend.
 
-# - 'moral': Marginal effect size Delta = 2.12 (Extremes: Level 4: 1.49 vs. Level 0: -0.63). Extremes exhibit no CI overlap.Bin 1 exhibits a CI width of 1.50 due to data sparsity (n = 27). The plot overall shows a monotonic upward trend.
+# - 'moral': Marginal effect size Delta = 2.15 (Extremes: Level 4: 1.50 vs. Level 0: -0.65). Extremes exhibit no CI overlap.Bin 1 exhibits a CI width of 1.52 due to data sparsity (n = 27). The plot overall shows a monotonic upward trend.
 
-#- 'laufkont': Marginal effect size Delta = 1.73 (Extremes: Level 4: 1.86 vs. Level 1: 0.13). Extremes exhibit no CI overlap. Bin 3 exhibits a CI width > 1.30 due to moderate data sparsity (n = 43).  The plot overall shows a monotonic upward trend.
+#- 'laufkont': Marginal effect size Delta = 1.74 (Extremes: Level 4: 1.87 vs. Level 1: 0.13). Extremes exhibit no CI overlap. Bin 3 exhibits a CI width > 1.38 due to moderate data sparsity (n = 43).  The plot overall shows a monotonic upward trend.
 
 # 2. Secondary Risk Driver (Moderate Delta, Structural Non-Linearity):
-# - 'dalter': Concave, approximately quadratic structure (leading coefficient < 0). Marginal effect size Delta = 0.88 (Extremes: 60-64: 1.21 vs. <=25: 0.33). Extreme categories exhibit substantial CI overlap. Bins  60-64 (3,3%) and  >=65 (2,1%) exhibit CI widths > 1.75 due to data sparsity.
+# - 'dalter': Concave, approximately quadratic structure (leading coefficient < 0). Marginal effect size Delta = 0.94 (Extremes: 60-64: 1.28 vs. <=25: 0.34). Extreme categories exhibit substantial CI overlap. Bins  60-64 (3,3%) and  >=65 (2,1%) exhibit CI widths > 1.98 due to data sparsity.
 
 # 3. Weak Risk Driver (Low Delta, Severe CI Overlap):
-# - 'beruf': Marginal effect size Delta = 0.49 (Extremes: Level 3: 0.93 vs. Level 1: 0.44). CI overlaps at all levels. Due to data sparsity, level 1 (1,8%) exhibit CI width > 2.00 and contains the CIs of the other levels. Therefore, no clear data is visible.
+# - 'beruf': Marginal effect size Delta = 0.47 (Extremes: Level 3: 0.94 vs. Level 1: 0.47). CI overlaps at all levels. Due to data sparsity, level 1 (1,9%) exhibit CI width > 2.24 and contains the CIs of the other levels. Therefore, no clear data is visible.
 
 # 5.2 Continuous Variables (Quantitative) & Functional Form Assessment
 
@@ -349,8 +411,39 @@ rm(gam_alter, gam_laufzeit)
 # Objective: Check empirical logit plots for non-parallel trends to visually detect possible interaction terms.
 # Instead of all possible combinations, analyze the strongest main effects driven by hypotheses
 
+# Integrity Check: Is continuity correction necessary?
+check_interaction_integrity <- function(var1, var2, threshold) {
+  # Combined 2-d cells
+  combined_cats <- interaction(data_train[[var1]], data_train[[var2]], drop = TRUE)
+  ct <- table(combined_cats, data_train$kredit)
+  
+  # 1. Integrity Check
+  if (any(ct == 0)) {
+    message(paste0("[INTEGRITY] Continuity Correction REQUIRED for '", var1, "' x '", var2, "'. 0-cells detected."))
+  }
+  
+  # 2. Sparsity Check
+  sparse_rows <- apply(ct, 1, function(row) any(row < threshold))
+  if (any(sparse_rows)) {
+    cats <- paste(names(sparse_rows)[sparse_rows], collapse = ", ")
+    warning(paste0("Sparsity detected in interaction '", var1, "' x '", var2, 
+                   "'! Cells below threshold (", threshold, "): [", cats, "]"), call. = FALSE)
+  }
+}
 
-# Helper function for Interaction plots
+# Relevant combinations: 
+# 1) Laufzeit vs. Moral
+check_interaction_integrity("dlaufzeit", "moral", threshold)
+# 2) Laufzeit vs. Laufkont
+check_interaction_integrity("dlaufzeit", "laufkont", threshold)
+# 3) Moral vs. Laufkont
+check_interaction_integrity("moral", "laufkont", threshold)
+# 4) Alter vs Laufzeit
+check_interaction_integrity("dalter", "dlaufzeit", threshold)
+
+# Conclusion: For every single combination, a continuity correction in the empirical logits is necessary.
+
+# Helper function for Interaction plots (with continuity correction)
 plot_interaction_profile <- function(df, x_var, group_var, x_label, legend_label) {
   # Grouping and calculating metrics
   agg_data <- df %>%
@@ -572,6 +665,11 @@ prop.table(table(data_train$dlaufzeit))
 
 # Evaluation: No empty categories (as before) and no sparse categories (each contains at least 5% of the training data)
 
+# Integrity check: Are there extreme categories, where no repayments or no defaults occure (check well- definedness of empirical logits)
+vars <- c("beruf_merged", "dalter_merged", "dlaufzeit_merged")
+check_logit_integrity(vars = vars, threshold = threshold)
+
+
 
 # 5.4.1 Marginal Effects Comparison (Before vs. After)
 
@@ -582,9 +680,12 @@ p_dlaufzeit_merged <- plot_emp_logit(credit_agg, dlaufzeit_merged, "Merged Durat
 p_dalter_merged    <- plot_emp_logit(credit_agg, dalter_merged, "Merged Age (dalter_merged)")
 p_beruf_merged     <- plot_emp_logit(credit_agg, beruf_merged, "Merged Occupation (beruf_merged)", FALSE)
 
-comparison_dlaufzeit <- p_dlaufzeit + p_dlaufzeit_merged
-comparison_dalter <- p_dalter + p_dalter_merged
-comparison_beruf <- p_beruf + p_beruf_merged
+comparison_dlaufzeit <- p_dlaufzeit + p_dlaufzeit_merged +
+  plot_layout(guides = "collect") + theme(axis.title.y = element_blank()) 
+comparison_dalter <- p_dalter + p_dalter_merged +  theme(axis.title.y = element_blank()) +
+  plot_layout(guides = "collect")
+comparison_beruf <- p_beruf + p_beruf_merged +
+  plot_layout(guides = "collect") + theme(axis.title.y = element_blank())
 
 # Save the combined plots
 ggsave("output/figures/comparison_dlaufzeit.png", plot = comparison_dlaufzeit, width = 10, height = 4, dpi = 300)
@@ -619,35 +720,35 @@ print(eda_emp_logit_comparison)
 # Interpretation:
 
 # Laufzeit: 
-# *Raw: Logit extremes ranging from 1.82 (<=6) to -0.35 (43-48). Due to data sparsity, in range of > 36 months, there are structural breaks in downward trend (e.g., spike to 1.73 at 37-42 months bin). Maximum CI width in category 49-54 given by 4.52 (L: -2.26, R: 2.26). 
-# Merged (> 36): Aggregation of the four sparse categories (n = 60), the empirical logit is equal to 0. CI of right tail is given by 1.00 (L: -0.5, U: 0.5).
+# *Raw: Logit extremes ranging from 1.87 (<=6) to -0.36 (43-48). Due to data sparsity, in range of > 36 months, there are structural breaks in downward trend (e.g., spike to 2.08 at 37-42 months bin). Maximum CI width in category 49-54 given by 5.54 (L: -2.77, U: 2.77). 
+# Merged (> 36): Aggregation of the four sparse categories (n = 60), the empirical logit is equal to 0. CI of right tail is given by 1.02 (L: -0.51, U: 0.51).
 # * Conclusion: Estimation variance was stabilized
 
 # Beruf:
-#*Raw: Logit extremes given by 0.93 (3) to 0.44 (1). Due to data sparsity, category 1 (n = 13) exhibits a overlapping with other levels. Maximum CI width in category 1 given by 2.14 (L: -0.63, U: 1.51).
+#*Raw: Logit extremes given by 0.94 (3) to 0.47 (1). Due to data sparsity, category 1 (n = 13) exhibits an overlap with other levels. Maximum CI width in category 1 given by 2.24 (L: -0.65, U: 1.59).
 #* Merged (1_2): Aggregation of the sparse category 1 with category 2 (n = 153), the empirical logit is equal to 0.81. CI of the new group is given by 0.68 (L: 0.47, U: 1.15).
 #* Conclusion: Estimation variance was stabilized and reduction of overlapping CIs.
 
 # Alter:
-#*Raw: Logit extremes ranging from 1.21 (60-64) to 0.33 (<=25). Due to data sparsity, in range of >= 60 years, there is a structural plateau with overlapping CIs. Maximum CI width in category >=65 given by 2.06 (L: -0.38, U: 1.68).
-#* Merged (>= 60): Aggregation of the two sparse upper categories (n = 38), empirical logit is equal to 1. CI of right tail is given by 1.42 (L: 0.29, U: 1.71).
+#*Raw: Logit extremes ranging from 1.28 (60-64) to 0.34 (<=25). Due to data sparsity, in range of >= 60 years, there is a structural plateau with overlapping CIs. Maximum CI width in category >=65 given by 2.14 (L: -0.38, U: 1.76).
+#* Merged (>= 60): Aggregation of the two sparse upper categories (n = 38), empirical logit is equal to 1.03. CI of right tail is given by 1.44 (L: 0.31, U: 1.75).
 #* Conclusion: Estimation variance was stabilized
 
 
 # Interpretation of Empirical Logits for Merged Covariates (Post-Refinement)
 
 # 1. Primary Risk Drivers (High Delta, Non-Overlapping CIs):
-# - 'dlaufzeit_merged': Marginal effect size Delta = 1.82 (Extremes: <=6: 1.82 vs. >36: 0.00), adjusted from previous raw Delta = 2.17 (Extremes: <=6: 1.82 vs. 43-48: -0.35) due to integration of outliers in dense bins. Extremes show no CI overlap. The structural break caused by sparsity is weakened, yielding a strictly monotonic downward trend. The maximum CI width is reduced to 1.28 (Bin 25-30), eliminating estimation noise.
+# - 'dlaufzeit_merged': Marginal effect size Delta = 1.87 (Extremes: <=6: 1.87 vs. >36: 0), adjusted from previous raw Delta = 2.23 (Extremes: <=6: 1.87 vs. 43-48: -0.36) due to integration of outliers in dense bins. Extremes show no CI overlap. The structural break caused by sparsity is weakened, yielding a clear overall monotonic downward trend. The maximum CI width is reduced to 1.30 (Bin 25-30), eliminating estimation noise.
 
-# - 'moral' (Unmerged): Marginal effect size Delta = 2.12 (Extremes: Level 4: 1.49 vs. Level 0: -0.63). Extremes exhibit no CI overlap. Bin 1 exhibits a CI width of 1.50 due to data sparsity (n = 27). The plot overall shows a strictly monotonic upward trend.
+# - 'moral' (Unmerged): Marginal effect size Delta = 2.15 (Extremes: Level 4: 1.50 vs. Level 0: -0.65). Extremes exhibit no CI overlap. Bin 1 exhibits a CI width of 1.52 due to data sparsity (n = 27). The plot overall shows a clear overall monotonic upward trend.
 
-# - 'laufkont' (Unmerged): Marginal effect size Delta = 1.73 (Extremes: Level 4: 1.86 vs. Level 1: 0.13). Extremes exhibit no CI overlap. Bin 3 exhibits a CI width > 1.30 due to moderate data sparsity (n = 43). The plot overall shows a strictly monotonic upward trend.
+# - 'laufkont' (Unmerged): Marginal effect size Delta = 1.74 (Extremes: Level 4: 1.87 vs. Level 1: 0.13). Extremes exhibit no CI overlap. Bin 3 exhibits a CI width of 1.38 due to moderate data sparsity (n = 43). The plot overall shows a strictly monotonic upward trend.
 
 # 2. Secondary Risk Driver (Moderate Delta, Structural Non-Linearity):
-# - 'dalter_merged': Concave, approximately quadratic structure (leading coefficient < 0). Marginal effect size Delta = 0.69 (Extremes: 40-59: 1.02 vs. <=25: 0.33), reduced from previous raw Delta = 0.88 (Extremes: 60-64: 1.21 vs. <=25: 0.33). Extreme categories exhibit CI overlap. Merging right tail (>=60) weakend noisy plateau and reduced the maximum CI width to 1.42. 
+# - 'dalter_merged': Concave, approximately quadratic structure (leading coefficient < 0). Marginal effect size Delta = 0.69 (Extremes: 40-59: 1.03 vs. <=25: 0.34), reduced from previous raw Delta = 0.94 (Extremes: 60-64: 1.28 vs. <=25: 0.34). Extreme categories exhibit CI overlap. Merging right tail (>=60) weakened noisy plateau and reduced the maximum CI width to 1.44. 
 
 # 3. Weak Risk Driver (Low Delta, Severe CI Overlap):
-# - 'beruf_merged': Marginal effect size Delta = 0.41 (Extremes: Level 3: 0.93 vs. Level 4: 0.52), adjusted from previous raw Delta = 0.49 (Extremes: Level 3: 0.93 vs. Level 1: 0.44). CI overlaps persist across all levels, indicating weak predictive effect on response. Merging levels 1 and 2 weakened masking effect of level 1 bin (CI width > 2.00). The maximum CI width was reduced to 0.68 (Level 1_2).
+# - 'beruf_merged': Marginal effect size Delta = 0.42 (Extremes: Level 3: 0.94 vs. Level 4: 0.52), adjusted from previous raw Delta = 0.47 (Extremes: Level 3: 0.94 vs. Level 1: 0.47). CI overlaps persist across all levels, indicating weak predictive effect on response. Merging levels 1 and 2 weakened masking effect of level 1 bin (CI width > 2.24). The maximum CI width was reduced to 0.68 (Level 1_2).
 
 
 # 5.4.2 Interaction Effects Comparison (Before vs. After)
@@ -886,10 +987,10 @@ summary(model_main)
 # Model Parameters (Coefficients, Odds Ratios, Confidence Intervals)
 or_table <- data.frame(
   term = names(coef(model_main)),
-  estimate = coef(model_main),
-  odds_ratio = exp(coef(model_main)),
-  conf_low = exp(confint(model_main)[, 1]),
-  conf_high = exp(confint(model_main)[, 2])
+  estimate = round(coef(model_main), 3),
+  odds_ratio = round(exp(coef(model_main)), 3),
+  conf_low = round(exp(confint(model_main)[, 1]), 3),
+  conf_high = round(exp(confint(model_main)[, 2]), 3)
 )
 print(or_table)
 write.csv(
@@ -897,11 +998,28 @@ write.csv(
   "output/tables/odds_ratios.csv",
   row.names = FALSE
 )
+# Odds of success:
+# Let x be a single covariate, consider the model \eta_j = \beta_0 + \beta_1 x_j. 
+# Then holds p_j = exp(\eta_j) / (1 + exp(\eta_j)).
+# Hence, \eta_j = ln(o_j), whereby o(x_j) = o_j = p_j / (1 - p_j) is the odd of success w.r.t. j^th observation. 
 
-# Odds ratios > 1 indicate higher odds of repayment (kredit = 1),
-# whereas odds ratios < 1 indicate lower odds of repayment (higher risk).
-# For factor variables, odds ratios are interpreted relative
-# to the respective reference category documented above.
+# 1) x is continuous
+# Increasing x_j by one unit changes the odd of success by a factor:
+# o(x_j + 1) / o(x_j) = exp(ln(o(x_j + 1))) / exp(ln(o(x_j))) = exp(\beta_1).
+# Hence, increasing the underlying continuous covariate by one unit multiplies the odd of success by exp(\beta_1).
+# If \beta_1 > 0, then the ratio of repayment to default increases. 
+# If \beta_1 < 0, then the ratio of repayment to default decreases.
+
+# 2) x is discrete with K categoriess 
+# Then x is coded as a dummy variable and it holds: 
+# \eta_j = \beta_0 + \beta_2 I_2(j) + \ldots + \beta_K I_{K}(j) and \eta_1 = \beta_0, where 1 is the reference category. Using K-1 indicator variables avoids a degenerated design matrix.
+# It holds \eta_j = ln(o_j)
+
+# The odds ratio between a category k \in \{2:K} and the reference category is given via:
+# o_k / o_1 = exp(\eta_k) / exp(\eta_1) = exp(\beta_k).
+# If \beta_k > 0, the ratio of repayment to default is higher than in the reference group.
+# If \beta_k < 0, the ratio of repayment to default is lower than in the reference group.
+
 
 # Export final metrics
 final_metrics <- data.frame(
