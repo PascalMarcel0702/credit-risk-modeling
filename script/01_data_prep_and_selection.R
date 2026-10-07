@@ -182,15 +182,12 @@ check_logit_integrity <- function(vars, threshold) {
   }
 }
 
-# Define Threshold (1% of observations)
-threshold <- ceiling(nrow(data_train) * 0.01)
+# Define Threshold (5% of observations)
+threshold <- ceiling(nrow(data_train) * 0.05)
 vars <- c("moral", "laufkont", "beruf", "dalter", "dlaufzeit")
 check_logit_integrity(vars = vars, threshold = threshold
 )
 # Result: No continuity correction necessary, but sparse categories exist.
-#'beruf' bin 1
-# 'dalter' bins [60-64, >=65]
-# 'dlaufzeit' bins [37-42, 49-54, >54] 
 
 # Advantage: Use logit difference accross categories as measure to rank covariates according to its influence on response:
 # Let x be a categorical covariate with categories j, k \in {1: K}.
