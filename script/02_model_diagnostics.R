@@ -31,29 +31,40 @@ ggsave("output/figures/partial_residual_laufzeit.png", plot = p_laufzeit, width 
 # Conclusion: The loess smoothing line approximately follows a horizontal straight trend. There is no strong indication that modelling 'laufzeit' as additive linear effect is not adequate.
 # Note, laufzeit is the only continuous covariate in this model, thus no other partial residual plots are regarded for model diagnostic.
 
-# 2. Goodness-of-Fit Assessment & Dispersion Check -----------------------------
-
-# 2.1 Residual Deviance Test (Asymptotic global fit)
+# 2. Goodness-of-Fit Assessment -----------------------------
+# 2.1 Goodness-of-Fit Assessment
+# Residual Deviance Test (Asymptotic global fit)
 # For binomial data, the residual deviance is adequately approximated by a \chi^2 - distribution
 dev <- deviance(model_main) # 693.85
-df_res <- df.residual(model_main) # 654
-crit_val <- qchisq(0.95, df = df_res) # 705.19 > dev
+df_res <- df.residual(model_main) # 645
+
 gof_p <- pchisq(dev, df = df_res, lower.tail = FALSE) #  0.1 > 0.089 > 0.05 
 # Interpretation: Residual deviance is greater than expected value ( = df), but p - value of 0.089 > 0.05 fails to reject Null hypothesis of adequate model fit.
 
-# 2.2 Pearson Chi-Square Dispersion Check (Heterogeneity Factor)
+# Pearson Chi-Square Test
 pearson_residuals <- residuals(model_main, type = "pearson")
 pearson_chi2 <- sum(pearson_residuals^2) # 647.12
-dispersion_param <- pearson_chi2 / df_res # 1.003292 \sim 1
-# Interpretation: Dispersion parameter (sigma^2) close to 1 indicating no strong evidence of overdispersion, since observed variance is approximately equal to the theoretical (binomial) variance. In particular, no strong evidence to use Beta-Binomial-Model instead.
+gof_chi_p <- pchisq(pearson_chi2, df = df_res, lower.tail = FALSE) # 0.4690684 >> 0.05
+# Interpretation: Reject null hypothesis that the model is not correctly specified. In particular, pearson chi-squared statistic is the sum of squared pearson residuals and thus represents the ratio of the squared empirical deviation to the theoretical binomial variance. Hence, no strong indication that the observed and theoretical variance does not match approximately.
+
+# 2.2 To-Do: Dispersion Check
+# Idea: Develop Score Mulitplier Test (Dean 1992) for testing on overdispersion.
+# In case, model random success probabilities via Beta distribution which results in a beta-binomial model.
+# Literature: https://www.math.cit.tum.de/fileadmin/w00ccg/math/Forschung/forschungsgruppen/statistics/academics/lec5.pdf (pp. 8-10)
+# Dean Test 1992 : https://www.tandfonline.com/doi/pdf/10.1080/01621459.1992.10475225
 
 # Save combined GoF metrics to the tables directory
 gof_results <- data.frame(
-  Metric = c("Residual Deviance", "Degrees of Freedom", "Critical Chi-sq Value", 
-             "p-value (Deviance)", "Pearson Chi-Square", "Dispersion Parameter (sigma^2)"),
-  Value = c(dev, df_res, crit_val, gof_p, pearson_chi2, dispersion_param)
+  Test = c("Residual Deviance", "Pearson Chi-Square"),
+  Statistic = c(dev, pearson_chi2),
+  DF = c(df_res, df_res),
+  P_Value = c(gof_p, gof_chi_p)
 )
-write.csv(gof_results, "output/tables/goodness_of_fit.csv", row.names = FALSE)
+write.csv(
+  gof_results,
+  "output/tables/goodness_of_fit.csv",
+  row.names = FALSE
+)
 
 
 # 3. Residual Analysis (Pearson, Deviance, Adjusted) ---------------------------
@@ -113,8 +124,8 @@ p_res_adj <- ggplot(df_residuals, aes(x = Fitted_Prob, y = Adjusted)) +
 ggsave("output/figures/residuals_adjusted.png", plot = p_res_adj, width = 8, height = 5, dpi = 300)
 
 # Conclusion: The LOESS curve is flat, indicating no structural misspecification such as chosen link function or modeled covariates.
-# Note: The adjusted residuals have unit variance - the mathematical artifacts are removed.
-# Note: The residual plot shows an asymmetric bounding (-4 for unexpected defaults vs. +2 for unexpected successes). This is a statistical artifact driven by the high repayment rate (approx. 70%) in data
+# Note: The adjusted residuals have unit variance - the mathematical artifact driven by theoretical variance is removed.
+# Note: The residual plot shows an asymmetric bounding (-4 for unexpected defaults vs. +2 for unexpected successes). This could be statistical artifact driven by the high repayment rate (approx. 70%) in data
 
 # 4. Influential Observations (Leverage & Cook's Distance) ---------------------
 p <- length(coef(model_main))
@@ -158,7 +169,7 @@ ggsave("output/figures/cooks_distance.png", plot = p_cooks_anal, width = 8, heig
 # Conclusion: All analytic Cook's distances are well below the theoretical threshold of 1 (the maximum value is approximately 0.4). # Hence,no data point dominates the parameter estimation.
 # Note: cooks.distance() scales cooks_d_approx by 1 / p, whereby p = #parameters.
 
-# Quantify how much (in \sigma^2) each regression coefficient changes if most influential observation is removed
+# Quantify how much (in SEs) each regression coefficient changes if most influential observation is removed
 
 # Identify index of obs. with highest approx. Cook's Distance
 top_cooks_index <- which.max(cooks_d_approx) # 164
@@ -176,7 +187,12 @@ dfbeta_threshold <- 2 / sqrt(n_agg) # 0.078
 
 # Understand context:
 credit_agg[top_cooks_index, ]
-# Interpretation: Top outlier (Index 164) represents two borrowers who repaid (each kredit=1) despite a high-risk profile: no current account (laufkont=1) and a critical credit history with external debts (moral=1). The discrepancy between low predicted probability and empirical success is responsible for the large cooks distance.
+# Interpretation: Top outlier (Index 164) represents two borrowers who repaid (each kredit=1) despite a high-risk profile: no current account (laufkont=1) and a critical credit history with external debts (moral=1).
+
+# Extract predicted probability for top outlier:
+prob_outlier <- fitted(model_main)[top_cooks_index]
+
+#The discrepancy between low predicted probability and empirical success is responsible for the large cooks distance.
 
 # Plot 3: Residuals vs Leverage (Combined Diagnostic Plot)
 # Goal: Identify outliers (y-axis) and high-leverage points (x-axis)
@@ -185,7 +201,6 @@ p_res_lev <- ggplot(df_influence, aes(x = Leverage, y = Adjusted_Residual)) +
   geom_point(alpha = 0.7) +
   geom_vline(xintercept = leverage_threshold, color = "red", linetype = "dashed", linewidth = 0.5) +
   geom_hline(yintercept = 0, color = "blue", linetype = "dashed", linewidth = 0.5) +
-  geom_smooth(method = "loess", se = FALSE, color = "darkblue", linewidth = 1) +
   theme_light() +
   labs(x = expression(Leverage~(h[ii]^L)), y = "Adjusted Pearson Residual")
 ggsave("output/figures/residuals_vs_leverage_plot.png", plot = p_res_lev, width = 8, height = 5, dpi = 300)
