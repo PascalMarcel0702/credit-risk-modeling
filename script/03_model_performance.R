@@ -1,6 +1,6 @@
 # ==============================================================================
 # Script: 03_model_performance.R
-# Purpose: Out-of-sample testing, Risk Metrics (ROC/AUC, MSE)
+# Purpose: Out-of-sample testing, Risk Metrics
 # ==============================================================================
 library(dplyr)
 library(tidyverse)
@@ -315,15 +315,24 @@ p_roc <- ggroc(roc_test, legacy.axes = TRUE, linewidth = 1.2) +
     legend.text = element_text(size = 11)
   )
 
+ggsave("output/figures/roc_curve.png", plot = p_roc, width = 8, height = 6, dpi = 300)
+
 # Interpretation:
 #Discriminatory Performance: Both training and test ROC curves remain positioned above the random-guess baseline, indicating a general capacity to rank credit risk profiles across on the population set.
-#Cost-Optimal Operating Points: The markers reflect the implementation of the 8:1 cost-ratio threshold,as well as the theoretical break - even threshold, - all yielding low false positive rates aligned with the objective of limiting high-cost default exposure.
+#Cost-Optimal Operating Points: The markers reflect the implementation of the 8:1 cost-ratio threshold, the profit maximization threshold, and the theoretical break - even threshold, - all yielding low false positive rates aligned with the objective of limiting high-cost default exposure.
 #The spatial alignment between the training and test operating points indicates that the decision threshold derived from the training data maintains consistent positioning when applied to the test set distribution.
 #The triangular markers illustrate the profit-maximizing strategy. By shifting the threshold to prioritize net revenue and market share, the model accepts a moderate absolute increase in False Positive Rates to achieve a substantial gain in True Positive Rates, thereby capturing more profitable loans.
 #Strategic Trade-Off & Stability: Due to the steep initial slope of the ROC curve,a marginal concession in risk tolerance (x-axis) yields large gains in approved good customers (y-axis) - this can be relevant regarding the market share of a bank. Furthermore, the spatial proximity of all the train and test profit markers indicates that these thresholds generalize to population sets.
 
 
 # Calibration Plot ------------------------------------------------------------
+# Group observations into risk categories and plot for them mean predicted probs against observed default frequencies
+
+# Interpretation: # General interpretation:
+# 1) The point lies below the dashed line (y < x: The model predicts a higher failure rate than actually occurs. The model overestimates the risk (it is pessimistic/conservative).
+# 2) The point lies above the dashed line (y > x): The model predicts a lower failure rate than actually occurs. The model underestimates the risk (it is optimistic/aggressive).
+
+# 1) Risk classes
 
 # Calibration plot w.r.t. risk classes "A (Prime)", "B (Very Good)", "C (Good)", "D (Acceptable)", "E (High Risk)", "F (Watchlist)", "G (Default Risk)"
 
@@ -383,9 +392,14 @@ ggplot(calib_scale, aes(x = mean_predicted_default_prob, y = mean_empirical_defa
     legend.position = "none"
   )
 
-# General interpretation:
-# 1) The point lies below the dashed line (y < x: The model predicts a higher failure rate than actually occurs. The model overestimates the risk (it is pessimistic/conservative).
-# 2) The point lies above the dashed line (y > x): The model predicts a lower failure rate than actually occurs. The model underestimates the risk (it is optimistic/aggressive).
+
+# Save calibration plot
+ggsave(
+  filename = "output/figures/calibration_rating_classes.png",
+  width = 8,
+  height = 5.5,
+  dpi = 300
+)
 
 # Interpretation: Grouped by risk classes
 # For the good customers (Class D, bottom left): The point lies below the perfect calibration line, in particular, the model predicts an average default rate of \sim 8% (x-axis), but empirically, the default is approx. 2% (y-axis). This means, the model assesses these customers as worse/riskier than they actually are. It overestimates their risk.
@@ -437,9 +451,9 @@ ggplot(calib_decile, aes(x = mean_predicted_default_prob, y = mean_empirical_def
   # Coordinates of Bins
   geom_point(color = "midnightblue", size = 4) +
   # Vertical lines for thresholds
-  geom_vline(xintercept = 1 - best_threshold, linetype = "dotted", color = "darkgreen", linewidth = 0.75) + # profit maximization
-  geom_vline(xintercept = 1 - max_threshold, linetype = "dotted", color = "darkorange", linewidth = 0.75) + # cost minimization
-  geom_vline(xintercept = 1 - threshold_min, linetype = "dotted", color = "darkgrey", linewidth = 0.75) + # cost minimization
+  geom_vline(xintercept = 1 - best_threshold, linetype = "dotted", color = "darkgreen", linewidth = 0.75) + # cost minimization
+  geom_vline(xintercept = 1 - max_threshold, linetype = "dotted", color = "darkorange", linewidth = 0.75) + # profit maximization
+  geom_vline(xintercept = 1 - threshold_min, linetype = "dotted", color = "darkgrey", linewidth = 0.75) + # Break-Even Point
   # Labeling
   # Labeling
   labs(
@@ -453,6 +467,13 @@ ggplot(calib_decile, aes(x = mean_predicted_default_prob, y = mean_empirical_def
     legend.position = "none"
   )
 
+ggsave(
+  filename = "output/figures/calibration_deciles.png",
+  width = 8,
+  height = 5.5,
+  dpi = 300
+)
+
 # Interpretation: Grouped by deciles
 # Structural behavior: The LOESS curve has a cubic polynomial shape w.r.t. the calibration line (y = x) as its vertical.
 
@@ -463,8 +484,7 @@ ggplot(calib_decile, aes(x = mean_predicted_default_prob, y = mean_empirical_def
 # The LOESS curve and deciles cross the dashed line and lie above it (y > x), i.e., the model systematically underestimates the default risk in this region (optimistic bias).
 
 # 3. Extreme high predicted default rates (x > 0.65):
-# The highest decile point aligns perfectly with the dashed line (y = x).The LOESS curve drops with a large CI, which is an artifact of horizontal data sparsity: while the highest decile is stretched across a wide probability range, resulting in large estimated variance.
-
+# The highest decile point aligns perfectly with the dashed line (y = x). The LOESS curve drops with a large CI, which is an artifact of horizontal data sparsity: while the highest decile is stretched across a wide probability range, resulting in large estimated variance.
 
 
 # Final Conclusion: Comparison of Master Scale vs. Decile Calibration
@@ -472,7 +492,7 @@ ggplot(calib_decile, aes(x = mean_predicted_default_prob, y = mean_empirical_def
 # Does the technical decile plot confirm the risk class plot? 
 # Yes, it confirms the global boundaries, but it reveals a hidden local vulnerability.
 # 1. Confirmations (Consistency across both views):
-# - Low-Risk Conservative Bias: Both plots show that for low-risk customers (Class D / deciles with x < 0.30), the model overestimates default risk. The resulting foregone interest rate margins are not as expensive as wrongly predicting a happended default.
+# - Low-Risk Conservative Bias: Both plots show that for low-risk customers (Class D / deciles with x < 0.30), the model overestimates default risk. The resulting foregone interest rate margins are not as expensive as wrongly predicting a happened default.
 # - Extreme High-Risk Accuracy: Both plots confirm that the absolute highest risk tier (Class G / 10th decile) is well-calibrated, placing the point on the calibration line.
 
 # - Hidden Optimistic Bias: The technical plot reveals a systematic underestimation of risk in the medium-to-high range (0.30 <= x <= 0.65). The largest Class F (n = 149) aggregates this entire region into a single point, averaging out the variance and making it appear perfectly calibrated. However, the model is actually too optimistic.
@@ -514,8 +534,8 @@ evaluate_strategy <- function(strategy_name, threshold, probability, data) {
     'Threshold' = round(threshold, 3),
     'Expected Approval Rate' = sprintf("%.1f %%", approval_rate * 100),
     'Wrongly predicted defaults' = fp_count,
-    'Netto-Profit' = sprintf("%.2f", net_profit),
-    'Profit Margine' = sprintf("%.2f %%", profit_margin * 100)
+    'Net Profit' = sprintf("%.2f", net_profit),
+    'Profit Margin' = sprintf("%.2f %%", profit_margin * 100)
   )
 }
 
@@ -555,7 +575,8 @@ row_market_share <- evaluate_strategy(
 
 # Create table
 strategy_comparison_table <- bind_rows(row_cost_min, row_profit_max, row_break_even,row_market_share)
-view(strategy_comparison_table)
+
+# view(strategy_comparison_table)
   
 # Conclusion: Strategic Threshold Selection (Profit Maximization) -----------------
 # Based on the KPI evaluation, the Profit Maximization strategy is selected as the optimal operating point for the final test evaluation.
@@ -571,7 +592,7 @@ view(strategy_comparison_table)
 # 3. Synergy with Model Calibration: As established in the LOESS calibration plot, 
 #    the profit threshold (0.842) safely resides within the "opportunity zone"
 #    (conservative bias). The marginally higher risk taken to expand the portfolio is
-#     buffered because these newly accepted applicants are actually safer than the model #     predicts.
+#     buffered because these newly accepted applicants are actually safer than the model predicts.
 # Final Verdict: Profit Maximization provides the mathematically and economically 
 # superior balance—maximizing real cash flow while maintaining strict risk bounderies
 
