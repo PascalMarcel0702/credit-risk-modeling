@@ -85,7 +85,7 @@ Let $\pi_j = P(\text{kredit}_j = 1 \mid \mathbf{x}_j)$ be the conditional probab
 
 $$ \pi_j = \pi(\mathbf{x}_j) = \frac{1}{1+\exp(-\eta_j)} \iff \log\left(\frac{\pi_j}{1-\pi_j}\right) = \eta_j $$
 
-The left equation bounds the predicted probabilities to the $(0, 1)$ interval. The right equation connects the linear predictor $\eta_j$ to the theoretical mean of the underlying profile $j$ via the canonical logit link function.
+The left equation bounds the predicted probabilities to the $(0, 1)$ interval. The right equation connects the linear predictor $\eta_j$ to the theoretical mean of the underlying profile $j$ via the canonical logit link function. In particular, the logit is linear in the covariates.
 
 With the aggregated binomial data structure $Y_j \sim \text{Binomial}(n_j, \pi_j)$, the regression coefficients are estimated by maximizing the binomial log-likelihood:
 
@@ -464,129 +464,239 @@ To illustrate the practical implications of the model, a few key effects are hig
 
 These metrics coincide with the marginal exploratory data analysis: Existing savings/account statuses and a clean credit history are dominant drivers for a positive credit outcome, while long-term loans structurally raise the default risk.
 
+---
 
+## Model Diagnostics
+In this section, diagnostics are performed to check whether the model assumptions and specifications are plausible. Moreover, observations that have an excessive influence on the regression result are detected and analyzed.
 
+### Goodness-of-Fit
+The residual deviance measures how close the fitted means are to the observations, by comparing the  the mean-parametrized log-likelihood of the selected model with the one of the saturated model ($#$ parameters $=$ $#$ observations), where each observation is considered as an estimate of the mean.
+Under the assumption that the binomial model is correctly specified and standard regularity conditions hold, the residual deviance is asymptotically $\chi_{n - p}^2$ distribution, whereby $n$ is the amount of grouped observations and $p$ is the number of parameters. Let $\mathbb{P}$ be the law of a $\chi^2$ distributed random variable, with $n - p = 654 - 9 = 645$ degrees of freedom.
+The residual deviance of the selected model is $ d = 693.85$. It holds $\mathbb{P}((d, \infty)) = 0.089 > 0.05$, thus the residual deviance test fails to reject the hypothesis of an adequate model fit at level of $5 \%$.
 
-## Model Diagnostics < Adjustment needed below>
+The Pearson-$\chi^2$-statistic $X^2$ is defined as the sum of squared Pearson residuals, where each summand represents the ratio of the squared empirical deviation to the theoretical binomial variance.
+Under the same assumptions as above, it is $\chi^2$ distributed with $n - p = 645$ degrees of freedom. The Pearson statistic of this model is $x^2 = 647.12$. It holds $\mathbb{P}((x^2, \infty)) = 0.469 >> 0.05$, thus the Pearson-$\chi^2$-test fails to reject the hypothesis of an adequate model fit at level of $5 \%$. 
 
+Note: Failure to reject the null hypothesis does not prove that the model is correctly specified.
 
 ### Functional Form Assessment
-**Question:** Is the continuous predictor `laufzeit` adequately modeled as a linear main effect?
+Based on the EDA and AIC/BIC results, the covariate `laufzeit` was modeled as a linear effect. The partial residual plot scatters `laufzeit` against the partial residuals to reveal the isolated relationship between the residuals and the regressor variable. Note that `laufzeit` is the only continuous covariate in this model.
 
 <p align="center">
-  <img src="output/figures/partial_residual_laufzeit.png" width="70%" alt="Partial Residual Plot: laufzeit">
+  <img src="output/figures/partial_residual_laufzeit.png" width="45%" alt="Partial Residual Plot: laufzeit">
 </p>
 
-*   **Method:** Partial residual analysis. Note that `laufzeit` is the only continuous covariate in the final specification, therefore its functional form can be isolated to check for non-linearity. The partial residuals are plotted against the predictor values $x_{ij}$. Algebraically, they are given as:
+**Figure:** Partial residual plot for the continuous covariate `laufzeit`. The plot displays two distinct point clouds due to the binary response structure. The overlaid LOESS smoothing line (blue) roughly follows a horizontal trend around zero. Wide CIs for durations $> 40$ months are caused by data sparsity. 
 
-$$e_i^{Y|X_{-j}} := \frac{y_i - n_i\hat{p}_i}{n_i\hat{p}_i(1-\hat{p}_i)} + \hat{\beta}_j x_{ij}$$
+The plot reveals no clear non-linear trend and no hint of systematic deviation in the dense regions. Thus, there is no strong indication against modelling `laufzeit` as an additive linear effect.
 
-*   **Evidence:** A LOESS smoothing curve applied to the partial residuals follows an approximately horizontal, straight path across the duration spectrum. 
-*   **Interpretation:** The plot provides no evidence of systematic non-linearity. The linear approximation holds completely.
-*   **Decision:** Retain `laufzeit` strictly as a linear predictor. No non-linear transformations are required.
 
-### Goodness-of-Fit & Dispersion Check
-**Question:** Does the model adequately describe the grouped data, and is the structural assumption of equidispersion satisfied?
+### Residual Analysis
+In the following, the residual values against the fitted probabilities are plotted to visually check for a systematic lack of fit. The adjusted Pearson residuals are used, since they have approximately unit variance and thus artifacts drven by the theoretical variance are removed.
+Residual signs can be interpreted as follows:
 
-**Method:** Residual deviance test and Pearson heterogeneity check. The residual deviance is evaluated against its asymptotic $\chi^2_{n-p}$ reference distribution. To assess potential overdispersion, the Pearson heterogeneity factor is calculated as: 
+* Negative residuals corresponds to unexpected defaults, i. e., the model predicts a repayment but the observation corresponds to a loan default.
+* Positive residuals corresponds to unexpected successes, i. e., the model predicts a default, but the loan was repaid. 
 
-$$\frac{e_i^P}{\sqrt{1 - h_{ii}^L}}$$
-
-**Evidence:** 
-* **Global Fit:** Residual deviance = 693.85 on 645 degrees of freedom. This value is below the 95% critical threshold of 705.19, yielding a p-value of 0.089.
-* **Dispersion:** The Pearson $\chi^2$ statistic is 647.12, resulting in an estimated dispersion parameter (heterogeneity factor) of $\hat{\sigma}^2 \approx 1.003$.
-
-**Interpretation:** 
-* The residual deviance does not provide statistically significant evidence of lack of fit at the 5% level.
-* Aggregated binomial profiles can sometimes exhibit variance greater than the theoretical binomial variance $np(1-p)$ due to unobserved heterogeneity, which would necessitate mixed models such as Beta-Binomial regression[cite: 3]. However, the estimated heterogeneity factor ($\hat{\sigma}^2 \approx 1.003$) is exceedingly close to 1. This formally indicates that the observed variance matches the theoretical binomial variance perfectly, ruling out severe overdispersion.
-
-**Decision:** Retain the standard Binomial GLM specification. There is no evidence of lack of fit, and the confirmed absence of overdispersion makes more complex mixed models unnecessary.
-
-### Residual Structure & Link Function Assessment
-**Question:** Are there systematic residual patterns indicating a misspecification of the link function or the linear predictors?
 
 <p align="center">
-  <img src="output/figures/residuals_adjusted.png" width="70%" alt="Adjusted Pearson Residuals">
+  <img src="output/figures/residuals_adjusted.png" width="90%" alt="Adjusted Pearson Residual Plot">
 </p>
 
-*   **Method:** Residual analysis plotting residuals against fitted probabilities. While raw Pearson and deviance residuals evaluate general appropriateness, they structurally lack unit variances. To assess constant variance and prevent masking by high-leverage points, leverage-adjusted Pearson residuals are strictly required. They are given by the following formula:
 
-$$e_i^a := e_i^P / \sqrt{1 - h_{ii}^L}$$
+**Figure** The residual plot shows asymmetric bounds ($-4$ for unexpected defaults vs. $+2$ for unexpected successes). This asymmetry may partly reflect the binary response structure and the distribution of fitted probabilities, given the high repayment rate (approximately $70 \%$) in the data. The LOESS curve is approximately flat, providing no clear visual evidence of systematic deviations in the residuals, which could be caused by structural misspecification such as chosen link function or modeled covariates.
 
-*   **Evidence:** The leverage-adjusted residuals fluctuate symmetrically around zero. The LOESS smoothing curve remains flat across the entire predicted probability spectrum, with only negligible boundary artifacts typical for non-parametric smoothing.
-*   **Interpretation:** The absence of severe non-linear patterns (e.g., U-shapes) firmly confirms the structural appropriateness of the model. The constant variance across the stabilized residuals mathematically verifies the correct specification of the logit link function.
-*   **Decision:** Retain the current model specification. No evidence of systematic lack of fit.
+Note: Due to the underlying asymmetric risk structure, unexpected defaults are more costly than unexpected successes. 
 
-### Influence Diagnostics
-**Question:** Do individual covariate profiles exert disproportionate influence on the estimated model parameters?
+### Influential Observations
+Cook's distance is used to assess the influence of individual observations on the fitted model by measuring the change in the estimated regression coefficients when an observation is removed.
 
 <p align="center">
-  <img src="output/figures/residuals_vs_leverage_plot.png" width="45%" alt="Residuals vs Leverage">
-  <img src="output/figures/cooks_distance.png" width="45%" alt="Approximate Cook's Distance">
+  <img src="output/figures/cooks_distance.png" width="90%" alt="Cook's Distance Plot">
 </p>
 
-*   **Method:** Leverage ($h_{ii}^L$) and Approximate Cook's Distance ($D_i^a$). Calculating the exact Cook's distance in logistic regression is computationally expensive as it requires iterative refitting. Therefore, the theoretically derived second-order Taylor expansion is computed manually as:
+**Figure**  The maximum value is approximately $0.04$, thus all Cook's distances lie well below the critical threshold of $1$. The red dashed line represents the practical threshold of $\frac{4}{n}$ for sensitive screening. The vast majority lie below this threshold. 
 
-$$D_i^a := (e_i^P)^2 \frac{h_{ii}^L}{(1-h_{ii}^L)^2}$$
- 
- This prevents the parameter-scaled ($p$) output typical for standard software functions and allows a direct evaluation against the absolute literature threshold of 1. Furthermore, a combined *Residuals vs. Leverage* plot is utilized to evaluate model fit and leverage simultaneously.
-*   **Evidence:** The reference threshold for high leverage is mathematically defined as $2p/n$. While several observations exceed this boundary, their adjusted Pearson residuals remain within a moderate range. Consequently, all approximate Cook's distances stay well below the critical threshold of 1 (maximum $\approx$ 0.4).
-*   **Interpretation:** Some aggregated profiles represent unusual predictor combinations, resulting in high leverage. However, since no observation exhibits simultaneously extreme leverage and an extreme residual, there are no highly influential data points distorting the model fit. The parameter estimates are robust.
-*   **Decision:** Retain all observations.
----
 
-## Validation & Risk Interpretation
+In the following, it is examined how much each regression coefficient changes if the most influential observation is removed. 
+The top outlier represents a grouped observation of two borrowers who repaid their credit with a duration of two years, despite a high-risk profile. Both have no current account (bin $1$ of `laufkont`) resulting in a black-box risk. Moreover, they have a critical credit history with external debts (bin $1$ of `moral`) - the ratio of repayment to debt for this category is approximately $1.544$ times higher than that of borrowers with hesitant credit management. 
 
-### Out-of-Sample Performance
-Stratification approximately preserves the class distribution across the training and test samples.
+The discrepancy between low predicted probability of $32.54 \%$ and the empirical success is responsible for the large Cook's distance.
 
-| Metric | Train | Test |
-|---|---:|---:|
-| AUC | 0.751 | 0.809 |
-| Brier Score | 0.175 | 0.161 |
-| Error Rate | 25.2% | 25.9% |
+The change of the following coefficients $\hat{\beta}$ is above the screening threshold of $\frac{2}{\sqrt{n}} = 0,078 $ standard errors (SEs):
 
-The similarity between training and test performance provides no pronounced evidence of overfitting on this hold-out sample.
+| Coefficient | Variable Category | DFBETAS Shift in SEs |
+|---|---|---|
+| `moral` | $1$ | $+0.42 $ |
+| `laufkont`| $2$ | $-0.14 $ |
+| `laufkont` | $3$ | $+0.08 $ |
+| `laufkont` | $4$ | $-0.11 $ |
 
-### Discrimination
-**Question:** Can the model distinguish higher-risk borrowers from lower-risk borrowers?
+The outlier has a noticeable effect on selected regression coefficients but does not cause an extreme change in the coefficient estimates since all DFBETAS values are bounded between $\pm 1$.
 
-![ROC Curve](output/performance/roc_curve.png)
+Finally, a combined diagnostic plot of adjusted pearson residuals against leverage is performed to visually detect outliers and extreme covariate profiles. The leverage of an observed covariate reflects the potential influence of a data point on the fit and is measured by the diagonal elements $h_ii$ of the hat matrix. A point is defined to have extreme covariate profile, if $h_ii > \frac{2p}{n}$. Data points with adjusted Pearson residuals outside of $[-2, 2]$ are regarded as outliers. Moreover, a data point is potentially influential, if it is an outlier and has extreme covariate profile. Particular attention is paid to observations with negative residuals, since they correspond to wrongly predicted defaults that may significantly influence the parameter estimation.
 
-**Method:** ROC analysis and Area Under the Curve (AUC).
 
-$$\text{AUC} = P(\hat p_{\text{repayment}} > \hat p_{\text{default}})$$
+<p align="center">
+  <img src="output/figures/residuals_vs_leverage_plot.png" width="90%" alt="Adjusted Pearson Residuals vs. Leverage Plot">
+</p>
 
-AUC measures how well the model distinguishes borrowers who repay their credit from borrowers who do not.
 
-**Evidence:** The ROC curve lies above the random-classification benchmark, with an AUC of 0.811.
+**Figure** Points on the right-hand side of the vertical dashed red line correspond to extreme covariate profiles. There exist several outliers with negative residuals, but their leverage is low. Numerous observations exceed the leverage threshold, but are not influential. In particular, there exist no observation with high leverage and negative residual. The single influential observation on the top right with positive residual corresponds to the observation with largest Cook's distance. As discussed above, this observation represents a plausible extreme case rather than clear evidence of model misspecification.
 
-**Interpretation:** The model demonstrates good discrimination between repayment and default outcomes.
 
-**Decision:** The model provides useful ranking information for risk differentiation.
 
-### Probabilistic Accuracy
-**Method:** Brier Score / MSE.
 
-$$\text{BS} = \frac{1}{N} \sum_{i=1}^{N} (\hat p_i-y_i)^2$$
+# Model Performance
+The model predicts probabilities in $\(0, 1\)$, therefore a threshold has to defined when the model should reject a loan.
 
-The Brier Score measures the mean squared error of probabilistic predictions, with lower values indicating better probabilistic accuracy. It complements the threshold-independent discrimination measure AUC.
+## Cost Sensitive Thresholds
+The costs of a misprediction are asymmetrically distributed: Wrongly predicted defaults are more costly than foregone interest rate margin due to rejecting a loan. 
+Per observation, the amount of a loan is captured by the covariate `hoehe` (in $\€$).  The average duration of a loan is calculated as the median of `laufzeit`, which is equal to $18$ months. 
+It is assumed that per default, the bank is able to recover in average $65 %$ of the credit amount, which is refered to the loss given default (`lgd`).
+Therefore, the (potential) loss of capital (`lc`) is calculated by `lc` $ = $ `hoehe` $ \cdot 0.65$. 
+Moreover, assume that per consumer credit receives in average an interest rate of $6 \%$. 
+Then, the interest rate margin (`irm`) can be calculated as `irm` $ = $ `hoehe` $ \cdot $ `laufzeit` $ / 12 \cdot 0.06$. Moreover, let `ir` = `irm` $ / $ `hoehe`.
+The cost ratio (`cr`) is then given by `cr` $ = $ `lc` $ / $ `irm` and approximately equal to $8$ under the made assumptions.
+This means that a credit default costs the bank $8$ times more than a foregone interest rate margin.
 
-### Risk Interpretation
-Odds ratios are defined as:
+### Empirical Cost Minimization
 
-$$\text{OR}_j = e^{\beta_j}$$
+In the following the threshold is calculated that minimizes the costs for the bank under consideration of the assumed cost ratio. For this cost sensitive threshold optimization, the function `pROC::roc` is used: First, the method `thresholds` yields an exhaustive list of all possible thresholds by extracting the unique sorted predicted probabilities of the model.
+Then, for each of these thresholds the empirical costs are calculated as follows: Each false negative predictor counts one unit, while each false positive predictor counts `cr` $ = 8$ times. Note that the penalty of $1$ for each false negative prediction serves as a regularizer: Without a penalty, the best strategy would be to reject every loan. Then, the threshold is selected causing minimal costs, which is approximately $0.87$. This means, if the model predicts a probability less than $0.87$, the bank rejects the loan.  
 
-An odds ratio above 1 indicates higher odds of repayment for a one-unit increase in the predictor, holding all other variables constant. For categorical variables, the odds ratio is interpreted relative to the reference category.
 
-**Key Predictor Impacts:**
-*   **Laufzeit:** An odds ratio of 0.970 means that a one-month increase in duration multiplies the odds of repayment by 0.970, holding all other predictors constant.
-*   **Moral:** The highest factor level (Category 4) has an odds ratio of 5.607 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline moral category.
-*   **Laufkont:** The highest factor level (Category 4) has an odds ratio of 5.510 relative to the reference category, indicating substantially higher odds of repayment compared to the baseline current account category.
+### Empirical Profit Maximization
 
-The displayed probability threshold represents an operating point selected according to the ROC criterion ($J = \text{Sensitivity} + \text{Specificity} - 1$). In a production credit-risk setting, the final decision threshold would additionally depend on asymmetric misclassification costs, risk appetite, and regulatory requirements.
+The ansatz of costs minimization ignores that the bank gains a yield for each repayed loan. Analogously to the empirical costs, the empirical profit is calculated for each possible threshold: If the model predicts a repayment correctly, the bank gains the interest rate margin `irm`, if the predictor is false positive, the bank pays the loss of capital `lc`. This method does not use a regularizer. The calculated threshold is approximately $0.92$. In particular, the bank rejects more loans with this strategy than with the one of empirical cost minimization.
 
----
+
+### Break-Even Point as Threshold
+
+The probability $q \in (0, 1)$ so that the expected yield is zero can be calculated as follows: 
+
+$$
+q \cdot \text{ `irm` }  + (1 - q) \cdot \text{ lc` } = 0 
+\iff 
+q \cdot \text{ `ir` } + (1 - q) \cdot \text{ `lgd` } = 0 
+\iff
+q = \frac{\text{ `lgd` }}{\text{ `ir` } + \text{ `lgd` }}
+$$
+
+The Break-Even-Threshold $q$ is approximately $0.86$ and thus larger than the thresholds corresponding to the empirical cost minimization but smaller than that of the profit maximization.
+
+
+## ROC Plot
+In the following, a ROC plot is used to visually compare the selected thresholds in face of the asymmetric cost structure.
+
+<p align="center">
+  <img src="output/figures/roc_curve.png" width="55%" alt="ROC Curve Plot">
+</p>
+
+**Figure**  Training and test ROC curves remain well above the random-guess baseline, indicating a general capacity to rank credit risk profiles across on the population set. The higher test AUC ($0.809$) relative to the train AUC ($0.751$) may be a statistical artifact driven by sampling variance in the test split. The circles represent the threshold gained by cost minimization, the diamonds corresponds to the break-even threshold and the triangles to the one of the profit maximization. The training and test markers are closely aligned, indicating a robust generalization to the population. All markers have a low false positive rate, which reflects the objective of limiting the high costs of a default. 
+
+In a neighborhood of the points corresponding to the cost minimization and break-even threshold, the slope of the ROC curve is steep in both directions. Thus, taking risk into account by lowering these threshold yields disproportionately more gains than defaults. The data point corresponding to the threshold calculated by empirical profit maximization sits on a saddle point, thus increasing the threshold causes more additional debts than repayments, while decreasing this threshold causes proportionately more foregone interest rates than debts.
+
+
+
+## Calibration Plots
+While the ROC analysis assesses the model's ranking power, calibration evaluates whether predicted default probabilities accurately match empirical default rates. For this, observations are grouped into risk categories, which are compared by plotting the mean predicted probability against the observed default frequency:
+
+- **Below the diagonal ($y < x$):** The model overestimates default risk (conservative/pessimistic bias).
+- **Above the diagonal ($y > x$):** The model underestimates default risk (optimistic/aggressive bias).
+
+
+### Rating Classes
+For a first summarizing view, the observations are grouped into rating classes A $-$ G.
+
+| Rating Grade | Risk Category | Predicted Default Probability Range |
+| :---: | :--- | :---: |
+| **A** | Prime | ≤ 0.5% |
+| **B** | Very Good | (0.5%, 1.5%] |
+| **C** | Good | (1.5%, 5.0%] |
+| **D** | Acceptable | (5.0%, 10.0%] |
+| **E** | High Risk | (10.0%, 20.0%] |
+| **F** | Watchlist | (20.0%, 50.0%] |
+| **G** | Default Risk | > 50.0% |
+
+
+<p align="center">
+  <img src="output/figures/calibration_rating_classes.png" width="45%" alt="Calibration Plot (Rating Classes)">
+</p>
+
+**Figure:** Calibration curve across credit rating grades (A–G) with  $95 \%$ confidence intervals and theoretical calibration line ($y = x$). For the poor customers (Classes F and G, top right), the points lie almost perfectly on the dashed line ($y = x$), indicating solid calibration for the aggregated high-risk profiles. The width of the CI for point G is large (approx. $0.28$), since with $44$ records class G is the smallest bin and the empirical default rate of approximately $64%$ is influenced by the maximum of variance of a binomial distribution $p(1-p)$ at $p = 0.5$. Despite the large CI, the model is accurate in estimating expected defaults for high-risk customers. For the good customers (Class D, bottom left), the point lies below the calibration line, in particular, the model predicts an average default rate of $\sim 8 \%$ (x-axis), but empirically, the default is approximately $2 \%$ (y-axis). This means, the model assesses these customers as worse/riskier than they actually are. It overestimates their risk. Note, there exist no observations falling into rating classes A - C. 
+
+
+### Deciles
+Deciles ensure a constant sample size per bin and therefore stabilize the standard error. 
+
+<p align="center">
+  <img src="output/figures/calibration_deciles.png" width="45%" alt="Calibration Plot (Ten Deciles)">
+</p>
+
+**Figure:** Calibration curve across ten deciles with  $95 \%$ confidence intervals, smoothing curve and theoretical calibration line ($y = x$).
+The smoothing curve has a cubic polynomial shape with respect to the calibration line ($y = x$) as its vertical. The dashed vertical lines specify the acceptance range for the thresholds corresponding to cost minimization (green), the break-even (grey) and profit maximization strategy  (orange)
+
+- *Low default risk ($x < 0.30$):* The LOESS curve and deciles lie below the dashed line (y < x), i. e., the model systematically overestimates the default risk in this region (conservative bias).
+- *Medium to high default risk ($0.30 \le x \le 0.65$):* The LOESS curve and deciles cross the dashed line and lie above it ($y > x$), i. e., the model systematically underestimates the default risk in this region (optimistic bias).
+- *Extreme default risk ($x > 0.65$):* The highest decile point aligns closely with the dashed line ($y = x$). The LOESS curve drops with a large CI, which is an artifact of horizontal data sparsity: The highest decile is stretched across a wide probability range, resulting in large estimated variance.
+
+The space along the x-axis between the strict cost threshold (grey / green) and the profit threshold (orange) represents the strategic opportunity zone. Applicants falling into this probability range are rejected under cost-minimization but approved under profit-maximization. The opportunity zone lies below the calibration diagonal ($y < x$) - i. e., as the bank shifts its policy from the green to the orange line to capture more market share, the newly accepted applicants are systematically less risky in reality than their predicted probabilities suggest.
+
+
+### Conclusion
+The decile plot confirms the global boundaries of the risk class plot, but reveals a hidden local vulnerability. 
+Both plots show that for low-risk customers (Class D / Deciles with $x < 0.30$), the model overestimates default risk. The resulting foregone interest rate margins are not as expensive as wrongly predicted defaults.
+Moreover, both plots confirm that the absolute highest risk tier (Class G / $10^{\text{th}}$ Decile) is well-calibrated, since the corresponding point sits on the calibration line.
+But, the decile plot reveals a systematic underestimation of risk in the medium-to-high range ($0.30 <= x <= 0.65$). The largest Class F ($n = 149$) aggregates this entire region into a single point, averaging out the variance and making it appear perfectly calibrated.
+
+## Decision of Strategy: Cost Minimization vs. Profit Maximization
+To determine the optimal decision threshold, operational and financial KPIs are evaluated across candidate strategies under empirical lending constraints ($\text{LGD} = 60\%$, interest margin $= 6.5\%$).
+
+| Strategy | Decision Threshold | Expected Approval Rate | False Positives (Defaults) | Net Profit | Profit Margin |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Cost Minimization** | 0.874 | 23.2% | 12 | 9,179.97 | 2.42% |
+| **Profit Maximization** | 0.842 | 32.3% | 21 | 9,420.07 | 1.64% |
+| **Break-Even** | 0.860 | 26.6% | 16 | 5,086.49 | 1.09% |
+| **Market Share (Growth)** | 0.700 | 57.7% | 68 | -45,194.17 | -4.20% |
+
+- **Absolute- and relative return:** While Cost Minimization yields a higher relative profit margin ($2.42\%$ vs. $1.64\%$), Profit Maximization generates the highest absolute Net Profit ($9.420,07 \€$). It leverages the risk trade-off by accepting a moderate increase in false positives ($21$ vs. $12$) to significantly expand the approval rate ($32.3\%$ vs. $23.2\%$).
+- **Risk Constraints:** Forcing a historical Market Share strategy ($\text{threshold} = 0.700$) results in severe financial losses ($-45.194,17 \€$), proving that aggressive volume growth is economically unavailable under the current $60\%$ LGD and $6.5\%$ interest rate assumptions.
+- **Synergy with Model Calibration:** As established in the decile calibration plot, the profit threshold ($0.842$) safely resides within the opportunity zone (conservative bias). The marginally higher risk taken to expand the portfolio is buffered since these newly accepted applicants are actually safer than the model predicts.
+
+**Decision:** Profit maximization represents the optimal operating point, maximizing total return while remaining fully protected by the conservative bias of the model in the decision region.
+
+
+
+
+## Final Model Evaluation
+
+Applying the empirical profit-maximization threshold ($0.842$) to the set ($n = 301$) yields the final out-of-sample performance.
+
+| | **Actual Default ($Y = 0$)** | **Actual Repayment ($Y = 1$)** | **Total Predicted** |
+| :--- | :---: | :---: | :---: |
+| **Predicted Default ($\hat{Y} = 0$)** | $84$ (TN) | $122$ (FN) | $206$ |
+| **Predicted Repayment ($\hat{Y} = 1$)** | $6$ (FP) | $89$ (TP) | $95$ |
+| **Total Actual** | $90$ | $211$ | $301$ |
+
+| Diagnostic Metric | Formula | Test Result |
+| :--- | :--- | :---: |
+| **Specificity (TNR)** | $\text{TN} / (\text{TN} + \text{FP})$ | $93.33\%$ |
+| **Precision (PPV)** | $\text{TP} / (\text{TP} + \text{FP})$ | $93.68\%$ |
+| **Sensitivity (TPR)** | $\text{TP} / (\text{TP} + \text{FN})$ | $42.18\%$ |
+
+In total, the test data contain $301$ records. Note that credit risk is asymmetric — false positives are substantially more costly than false negatives. Credit defaults were predicted correctly at a rate of $93.33\%$, leaving only $6$ false positives. On the other hand, there are $122$ false negatives. This means in $57.82\%$ ($100\% - 42.18\%$) of cases, the model causes foregone interest margins (it approves $42.18\%$ of good loans correctly). Last, when the model predicts a repayment, this is true in $93.68\%$ of cases.
+
+To evaluate the economic viability, the **Profit per Applicant** is calculated by dividing the total net profit by the total number of credit applicants across the training and test sets respectively:
+
+$$\text{Profit per Applicant} = \frac{\text{Net Profit}}{n}$$
+
+| Evaluation Metric | Training Set ($n = 699$) | Test Set ($n = 301$) |
+| :--- | :---: | :---: |
+| **Profit per Applicant** | $13.47\text{ €}$ | $49.68\text{ €}$ |
+
+The Profit per Applicant sits at a positive $13.47\text{ €}$ (train) vs. $49.68\text{ €}$ (test). This discrepancy is caused by high sample variance due to low data amount ($n = 301$) of test data, but indicates out-of-sample generalization. Despite rejecting a large portion of potentially good loans (FNs), the strict filtering ensures the remaining approved portfolio is profitable and outweighs the capital losses from the few remaining defaults.
+
 
 ## Limitations & Extensions
 
