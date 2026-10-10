@@ -78,6 +78,8 @@ data_split <- initial_split(credit_candidate, prop = 0.7, strata = kredit)
 data_train <- training(data_split)
 data_test  <- testing(data_split)
 
+#c(nrow(data_test), nrow(data_train))
+
 # 4.2 Aggregate data
 #  Group binary data to obtain binomial response. 
 #  Note: Residual deviance in binary regression model cannot be used to evaluate
@@ -100,8 +102,6 @@ n_aggregated_train
 stopifnot(sum(credit_agg$kredit) + sum(credit_agg$no_kredit) == nrow(data_train))
 stopifnot(all(credit_agg$kredit >= 0), all(credit_agg$no_kredit >= 0))
 
-# Export aggregated training dataset for subsequent diagnostic steps
-saveRDS(credit_agg, "output/credit_agg.rds") # Adjustment needed: Save data at end
 
 # Pre-Check: Design Matrix Rank for Algorithmic Stability
 # Create the full design matrix for all candidate variables
@@ -331,8 +331,8 @@ continuous_summary <- tibble(
   Max = c(max(data_train$laufzeit), max(data_train$alter))
 )
 
-print(continuous_summary)
-
+#print(continuous_summary)
+write.csv(continuous_summary, "output/tables/eda_continuous_summary.csv", row.names = FALSE)
 
 # Functional Form Assessment ---------------------------------------------------
 
@@ -836,7 +836,7 @@ print(eda_interaction_comparison)
 # Main Goal: Predictive performance
 # Method: AIC as primary model-selection model and BIC as sensitivity criterion
 
-n_indiv <- nrow(data_train) # = 700
+n_indiv <- nrow(data_train) # = 699
 
 # Null model (intercept only)
 model_null <- glm(
@@ -981,7 +981,6 @@ summary(model_main)
 or_table <- data.frame(
   term = names(coef(model_main)),
   estimate = round(coef(model_main), 3),
-  odds_ratio = round(exp(coef(model_main)), 3),
   conf_low = round(exp(confint(model_main)[, 1]), 3),
   conf_high = round(exp(confint(model_main)[, 2]), 3)
 )
@@ -1017,10 +1016,14 @@ write.csv(
 # Export final metrics
 final_metrics <- data.frame(
   Model_Specification = c("Null Model", "Main Effects (BIC penalty)", "Main Effects (AIC penalty)"),
-  Degrees_of_Freedom = c(model_null$rank, model_raw_stepwise_forward_bic$rank, model_main$rank),
-  Residual_Deviance = c(model_null$deviance, model_raw_stepwise_forward_bic$deviance, model_main$deviance),
-  AIC_Score = c(AIC(model_null), AIC(model_raw_stepwise_forward_bic), AIC(model_main)),
-  BIC_Score = c(BIC(model_null), BIC(model_raw_stepwise_forward_bic), BIC(model_main))
+  Parameters_p = c(model_null$rank, model_raw_stepwise_forward_bic$rank, model_main$rank),
+  Residual_Deviance = round(c(model_null$deviance, model_raw_stepwise_forward_bic$deviance, model_main$deviance), 2),
+  AIC_Score = round(c(AIC(model_null), AIC(model_raw_stepwise_forward_bic), AIC(model_main)), 2),
+  BIC_Score = round(c(
+    AIC(model_null, k = log(n_indiv)),
+    AIC(model_raw_stepwise_forward_bic, k = log(n_indiv)),
+    AIC(model_main, k = log(n_indiv))
+  ), 2)
 )
 
 write.csv(
@@ -1030,5 +1033,7 @@ write.csv(
 )
 
 # Export raw splits for out-of-sample evaluation
+saveRDS(model_main, "output/model_main.rds")
 saveRDS(data_train, "output/data_train.rds")
+saveRDS(credit_agg, "output/credit_agg.rds")
 saveRDS(data_test, "output/data_test.rds")

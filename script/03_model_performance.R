@@ -35,8 +35,8 @@ ci_test  <- ci(roc_test) # 95% CI: 0.7577-0.861
 # Empirical Cost Minimization ------------------------------------------------
 # Goal: Calculate threshold that minimizes costs
 
-# Assumptions: Loss Given Default (LGD) = 65 %  (average protion of loss per default)
-#              Interest rate on consumer credit = 6 % 
+# Assumptions: Loss Given Default (LGD) = 60 %  (average protion of loss per default)
+#              Interest rate on consumer credit = 6.5 % 
 
 # Note: The costs are asymmetrically distributed: 
 #Defaults are more costly than foregone interest rate margins due to rejection of loan
@@ -44,23 +44,23 @@ ci_test  <- ci(roc_test) # 95% CI: 0.7577-0.861
 # Amount of loan: data$hoehe
 # Average period of loan: data$laufzeit
 
-# loss of capital (lc) = credit amount * LGD   = data$hoehe * 0.65
+# loss of capital (lc) = credit amount * LGD   = data$hoehe * 0.60
 
-# interest rate margin (irm) = data$hoehe * data$laufzeit / 12 * 0.06 
+# interest rate margin (irm) = data$hoehe * data$laufzeit / 12 * 0.065 
 
-# cost ratio (cr) = lc / irm = 0.65 / [data$laufzeit / 12 * 0.06] = 130 / data$laufzeit = \alpha / data$laufzeit
+# cost ratio (cr) = lc / irm = 0.60 / [data$laufzeit / 12 * 0.065] = \alpha / data$laufzeit
 
 # Calculation of \alpha
 LGD <- 0.60
 ir <- 0.065
-alpha <- LGD * 12 / ir # 130
+alpha <- LGD * 12 / ir
 
 # Calculate meadian of laufzeit
 median_laufzeit <- median(data_train$laufzeit) # 18 (months)
 
-cr <- alpha / median_laufzeit # 7.22 \sim 8
+cr <- alpha / median_laufzeit # 6.15 \sim 7
 
-#Interpretation: Credit default costs 8 time more than forgone interest rate margin
+#Interpretation: Credit default costs 7 time more than forgone interest rate margin
 
 cr_factor <- ceiling(cr)
 
@@ -77,7 +77,7 @@ calculate_empirical_loss <- function(threshold, probability, data, cost_ratio_fa
   
   # Extract FP and FN
   FN <- cm["0", "1"] # Predicted, Data) - foregone interest margin (Cost = 1) - Penalty term
-  FP <- cm["1", "0"] # Predicted, Data) - Loss of capital (Cost = 8)
+  FP <- cm["1", "0"] # Predicted, Data) - Loss of capital (Cost = 7)
   
   # Calculate Total Loss
   total_loss <- (FN * 1) + (FP * cr_factor)
@@ -107,7 +107,7 @@ optimal_threshold_table_train <- coords(
   transpose = FALSE
 )
 
-print(threshold_prevalence  == optimal_threshold_table_train$threshold[1]) # TRUE
+print(best_threshold == optimal_threshold_table_train$threshold[1]) # TRUE
 # Cross-validation confirms analytical and empirical cost minimizations converge to the identical global optimum, verifying implementation consistency.
 
 
@@ -137,7 +137,7 @@ profit_values <- sapply(all_thresholds, function(t) {
 })
 
 max_index <- which.max(profit_values)
-max_threshold <- all_thresholds[max_index] # 0.9237426
+max_threshold <- all_thresholds[max_index] # 0.8421814
 
 # Break - Even Point:
 # The repayment prob. q s.t. the expectation is positive can be calculated as follows:
@@ -154,8 +154,8 @@ threshold_min <- q
 
 
 # ROC - metrics and plot -------------------------------------------------------
-# Sensitivity (true positive rate, i.e., portion of defaults detected by the model )
-# Specificity (true negative, portion of repayments detected by the model)
+# Sensitivity (true positive rate, i.e., portion of repayments detected by the model )
+# Specificity (true negative, portion of defaults detected by the model)
 
 # Training data
 
@@ -178,6 +178,7 @@ specificity_even_train <- metrics_even_train$specificity[1]
 sensitivity_even_train <- metrics_even_train$sensitivity[1]
 
 # Test data
+
 metrics_test <- coords(roc_test, x = best_threshold, input = "threshold", 
                        ret = c("specificity", "sensitivity"), transpose = FALSE)
 specificity_test <- metrics_test$specificity[1]
@@ -232,7 +233,7 @@ p_roc <- ggroc(roc_test, legacy.axes = TRUE, linewidth = 1.2) +
   # Label for Blue Square (Train)
   annotate(
     "text",
-    x = 1 - specificity_profit_train, 
+    x = 1 - specificity_even_train, 
     y = sensitivity_even_train,
     label = sprintf("(%.3f | %.3f)", 1 - specificity_even_train, sensitivity_even_train),
     color = "royalblue",
@@ -270,7 +271,7 @@ p_roc <- ggroc(roc_test, legacy.axes = TRUE, linewidth = 1.2) +
     y = sensitivity_test,
     label = sprintf("(%.3f | %.3f)", 1- specificity_test, sensitivity_test),
     color = "darkgreen",
-    hjust = -0.3, vjust = 0.3, size = 4, fontface = "italic"
+    hjust = -0.3, vjust = 0.6, size = 4, fontface = "italic"
   ) +
   # Label for Blue Point (Train)
   annotate(
@@ -279,7 +280,7 @@ p_roc <- ggroc(roc_test, legacy.axes = TRUE, linewidth = 1.2) +
     y = sensitivity_train,
     label = sprintf("(%.3f | %.3f)", 1 - specificity_train, sensitivity_train),
     color = "royalblue",
-    hjust = -0.1, vjust = 1.8, size = 4, fontface = "italic"
+    hjust = 0, vjust = 2.1, size = 4, fontface = "italic"
   ) +
   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
   scale_color_manual(
@@ -315,11 +316,11 @@ p_roc <- ggroc(roc_test, legacy.axes = TRUE, linewidth = 1.2) +
     legend.text = element_text(size = 11)
   )
 
-ggsave("output/figures/roc_curve.png", plot = p_roc, width = 8, height = 6, dpi = 300)
+ggsave("output/figures/roc_curve.png", plot = p_roc, width = 8, height = 6, dpi = 300, bg = "white")
 
 # Interpretation:
-#Discriminatory Performance: Both training and test ROC curves remain positioned above the random-guess baseline, indicating a general capacity to rank credit risk profiles across on the population set.
-#Cost-Optimal Operating Points: The markers reflect the implementation of the 8:1 cost-ratio threshold, the profit maximization threshold, and the theoretical break - even threshold, - all yielding low false positive rates aligned with the objective of limiting high-cost default exposure.
+#Discriminatory Performance: Both training and test ROC curves remain positioned above the random-guess baseline, indicating a general capacity to rank credit risk profiles across the population.
+#Cost-Optimal Operating Points: The markers reflect the implementation of the 7:1 cost-ratio threshold, the profit maximization threshold, and the theoretical break - even threshold, - all yielding low false positive rates aligned with the objective of limiting high-cost default exposure.
 #The spatial alignment between the training and test operating points indicates that the decision threshold derived from the training data maintains consistent positioning when applied to the test set distribution.
 #The triangular markers illustrate the profit-maximizing strategy. By shifting the threshold to prioritize net revenue and market share, the model accepts a moderate absolute increase in False Positive Rates to achieve a substantial gain in True Positive Rates, thereby capturing more profitable loans.
 #Strategic Trade-Off & Stability: Due to the steep initial slope of the ROC curve,a marginal concession in risk tolerance (x-axis) yields large gains in approved good customers (y-axis) - this can be relevant regarding the market share of a bank. Furthermore, the spatial proximity of all the train and test profit markers indicates that these thresholds generalize to population sets.
@@ -398,7 +399,8 @@ ggsave(
   filename = "output/figures/calibration_rating_classes.png",
   width = 8,
   height = 5.5,
-  dpi = 300
+  dpi = 300,
+  bg = "white"
 )
 
 # Interpretation: Grouped by risk classes
@@ -455,7 +457,6 @@ ggplot(calib_decile, aes(x = mean_predicted_default_prob, y = mean_empirical_def
   geom_vline(xintercept = 1 - max_threshold, linetype = "dotted", color = "darkorange", linewidth = 0.75) + # profit maximization
   geom_vline(xintercept = 1 - threshold_min, linetype = "dotted", color = "darkgrey", linewidth = 0.75) + # Break-Even Point
   # Labeling
-  # Labeling
   labs(
     x = "predicted default rate",
     y = "empirical default rate"
@@ -471,7 +472,8 @@ ggsave(
   filename = "output/figures/calibration_deciles.png",
   width = 8,
   height = 5.5,
-  dpi = 300
+  dpi = 300,
+  bg = "white"
 )
 
 # Interpretation: Grouped by deciles
@@ -499,7 +501,7 @@ ggsave(
 # All in all, the LOESS plot highlights that the model underestimates medium-risk applicants w.r.t. their true default probability. 
 
 # Interpretation: Thresholds: 
-#The space along the x-axis between the strict cost threshold (grey / green) and the profit threshold (orange) represents the strategic "opportunity zone". Applicants falling into this probability range are rejected under cost- / win-minimization but approved under profit-maximization.The opportunity zone lies below the calibration diagonal (y < x) - i.e., as the bank shifts its policy from the green to the orange line to capture more market share, the newly accepted applicants are systematically less risky in reality than their predicted probabilities suggest.
+#The space along the x-axis between the conservative thresholds (grey / green) and the profit threshold (orange) represents the strategic "opportunity zone". Applicants falling into this probability range are rejected under cost- / win-minimization but approved under profit-maximization.The opportunity zone lies below the calibration diagonal (y < x) - i.e., as the bank shifts its policy from the green to the orange line to capture more market share, the newly accepted applicants are systematically less risky in reality than their predicted probabilities suggest.
 
 
 
@@ -614,7 +616,6 @@ sensitivity <- TP / (TP + FN) # True Positive Rate           0.4218009 -> 42.18 
 specificity <- TN / (TN + FP) # True Negative Rate           0.9333333 -> 93.33 %
 precision   <- TP / (TP + FP) # Positive Predictive Value    0.9368421 -> 93.68 %
 
-
 # Conclusion: 
 #In total, the test data contain 301 records. Note, the credit risk is asymmetric - false positives are more costly than false negatives. Credit defaults were predicted correctly at a rate of 93.33%,leaving 6 false positives. On the other hand, there are 122 false negatives. This means in 52.87 % (100 % - 42.18 %) of the cases, the model causes foregone interest margins ( it approves 42.18 % of good loans correctly). Last, when the model predicts a repayment, this is true in 93.68 % of the cases.
 
@@ -681,7 +682,7 @@ performance_metrics <- data.frame(
     round(specificity, 4),
     round(precision, 4),
     round(test_error, 4),
-    round(weighted_test_error, 2),
+    round(weighted_test_error, 4),
     round(profit_per_applicant_train, 2),   
     round(profit_per_applicant, 2)
   )

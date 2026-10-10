@@ -27,7 +27,7 @@ p_laufzeit <- ggplot(partial_laufzeit, aes(x = laufzeit, y = partial_residual)) 
     x = "Duration in Months (laufzeit)",
     y = "Partial Residual"
   )
-ggsave("output/figures/partial_residual_laufzeit.png", plot = p_laufzeit, width = 8, height = 6, dpi = 300)
+ggsave("output/figures/partial_residual_laufzeit.png", plot = p_laufzeit, width = 8, height = 6, dpi = 300, bg = "white")
 # Conclusion: The loess smoothing line approximately follows a horizontal straight trend. There is no strong indication that modelling 'laufzeit' as additive linear effect is not adequate.
 # Note, laufzeit is the only continuous covariate in this model, thus no other partial residual plots are regarded for model diagnostic.
 
@@ -45,7 +45,7 @@ gof_p <- pchisq(dev, df = df_res, lower.tail = FALSE) #  0.1 > 0.089 > 0.05
 pearson_residuals <- residuals(model_main, type = "pearson")
 pearson_chi2 <- sum(pearson_residuals^2) # 647.12
 gof_chi_p <- pchisq(pearson_chi2, df = df_res, lower.tail = FALSE) # 0.4690684 >> 0.05
-# Interpretation: Reject null hypothesis that the model is not correctly specified. In particular, pearson chi-squared statistic is the sum of squared pearson residuals and thus represents the ratio of the squared empirical deviation to the theoretical binomial variance. Hence, no strong indication that the observed and theoretical variance does not match approximately.
+# Interpretation: Reject null hypothesis that the model is correctly specified. In particular, pearson chi-squared statistic is the sum of squared pearson residuals and thus represents the ratio of the squared empirical deviation to the theoretical binomial variance. Hence, no strong indication that the observed and theoretical variance does not match approximately.
 
 # 2.2 To-Do: Dispersion Check
 # Idea: Develop Score Mulitplier Test (Dean 1992) for testing on overdispersion.
@@ -98,7 +98,7 @@ p_res_pearson <- ggplot(df_residuals, aes(x = Fitted_Prob, y = Pearson)) +
   geom_hline(yintercept = 0, color = "green", linewidth = 0.5, linetype = "dashed") +
   theme_light() +
   labs( x = "Predicted Probability", y = "Pearson Residual")
-ggsave("output/figures/residuals_pearson.png", plot = p_res_pearson, width = 8, height = 5, dpi = 300)
+ggsave("output/figures/residuals_pearson.png", plot = p_res_pearson, width = 8, height = 5, dpi = 300, bg = "white")
 # Interpretation: The LOESS curve is flat, indicating no structural misspecification such as chosen link function or modeled covariates.
 # Note: Raw pearson residuals have no unit variance and thus changes with predicted probability, hence artifacts can hide underlying problems. Therefore, adjusted residuals are needed.
 
@@ -121,7 +121,7 @@ p_res_adj <- ggplot(df_residuals, aes(x = Fitted_Prob, y = Adjusted)) +
   geom_smooth(method = "loess", se = FALSE, color = "darkblue", linewidth = 1) +
   theme_light() +
   labs( x = "Predicted Probability", y = "Adjusted Residual")
-ggsave("output/figures/residuals_adjusted.png", plot = p_res_adj, width = 8, height = 5, dpi = 300)
+ggsave("output/figures/residuals_adjusted.png", plot = p_res_adj, width = 8, height = 5, dpi = 300, bg = "white")
 
 # Conclusion: The LOESS curve is flat, indicating no structural misspecification such as chosen link function or modeled covariates.
 # Note: The adjusted residuals have unit variance - the mathematical artifact driven by theoretical variance is removed.
@@ -165,8 +165,8 @@ p_cooks_anal <- ggplot(df_influence, aes(x = Index, y = CooksDAnal)) +
   geom_hline(yintercept = practical_threshold, color = "red", linetype = "dashed") +
   theme_light() +
   labs(x = "Observation Index", y = "Cook's Distance (D_i)")
-ggsave("output/figures/cooks_distance.png", plot = p_cooks_anal, width = 8, height = 5, dpi = 300)
-# Conclusion: All analytic Cook's distances are well below the theoretical threshold of 1 (the maximum value is approximately 0.4). # Hence,no data point dominates the parameter estimation.
+ggsave("output/figures/cooks_distance.png", plot = p_cooks_anal, width = 8, height = 5, dpi = 300, bg = "white")
+# Conclusion: All analytic Cook's distances are well below the theoretical threshold of 1 (the maximum value is approximately 0.04). # Hence,no data point dominates the parameter estimation.
 # Note: cooks.distance() scales cooks_d_approx by 1 / p, whereby p = #parameters.
 
 # Quantify how much (in SEs) each regression coefficient changes if most influential observation is removed
@@ -186,13 +186,28 @@ dfbeta_threshold <- 2 / sqrt(n_agg) # 0.078
 # These shifts < 1 (critical threshold). 
 
 # Understand context:
-credit_agg[top_cooks_index, ]
+top_profile <- credit_agg[top_cooks_index, ]
 # Interpretation: Top outlier (Index 164) represents two borrowers who repaid (each kredit=1) despite a high-risk profile: no current account (laufkont=1) and a critical credit history with external debts (moral=1).
 
 # Extract predicted probability for top outlier:
 prob_outlier <- fitted(model_main)[top_cooks_index]
 
 #The discrepancy between low predicted probability and empirical success is responsible for the large cooks distance.
+
+# Export DFBETAS of coefficients and profile context of top outlier
+
+top_outlier_summary <- data.frame(
+  Coefficient     = names(top_obs_dfb),
+  DFBETA          = round(top_obs_dfb, 2),
+  Threshold       = round(dfbeta_threshold, 3),
+  Exceeds         = abs(top_obs_dfb) > dfbeta_threshold,
+  Predicted_Prob  = round(prob_outlier, 4),
+  Obs_Repayments  = top_profile$kredit,
+  Obs_Total       = top_profile$kredit + top_profile$no_kredit
+)
+
+write.csv(top_outlier_summary, "output/tables/top_outlier_analysis.csv", row.names = FALSE)
+
 
 # Plot 3: Residuals vs Leverage (Combined Diagnostic Plot)
 # Goal: Identify outliers (y-axis) and high-leverage points (x-axis)
@@ -203,7 +218,7 @@ p_res_lev <- ggplot(df_influence, aes(x = Leverage, y = Adjusted_Residual)) +
   geom_hline(yintercept = 0, color = "blue", linetype = "dashed", linewidth = 0.5) +
   theme_light() +
   labs(x = expression(Leverage~(h[ii]^L)), y = "Adjusted Pearson Residual")
-ggsave("output/figures/residuals_vs_leverage_plot.png", plot = p_res_lev, width = 8, height = 5, dpi = 300)
+ggsave("output/figures/residuals_vs_leverage_plot.png", plot = p_res_lev, width = 8, height = 5, dpi = 300, bg = "white")
 
 # Verify that point on top-right corresponds to id top_cooks_index
 top_right_point <- df_influence %>% 

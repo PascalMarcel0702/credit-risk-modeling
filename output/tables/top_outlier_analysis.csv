@@ -1,0 +1,10 @@
+"Coefficient","DFBETA","Threshold","Exceeds","Predicted_Prob","Obs_Repayments","Obs_Total"
+"(Intercept)",0.03,0.078,FALSE,0.3254,2,2
+"laufkont2",-0.14,0.078,TRUE,0.3254,2,2
+"laufkont3",-0.08,0.078,TRUE,0.3254,2,2
+"laufkont4",-0.11,0.078,TRUE,0.3254,2,2
+"moral1",0.42,0.078,TRUE,0.3254,2,2
+"moral2",-0.01,0.078,FALSE,0.3254,2,2
+"moral3",0.01,0.078,FALSE,0.3254,2,2
+"moral4",0,0.078,FALSE,0.3254,2,2
+"laufzeit",0.03,0.078,FALSE,0.3254,2,2
