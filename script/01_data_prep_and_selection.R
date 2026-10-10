@@ -78,10 +78,6 @@ data_split <- initial_split(credit_candidate, prop = 0.7, strata = kredit)
 data_train <- training(data_split)
 data_test  <- testing(data_split)
 
-# Export raw splits for out-of-sample evaluation in Script 3
-saveRDS(data_train, "output/data_train.rds") # Adjustment needed: Save data at end
-saveRDS(data_test, "output/data_test.rds")  # Adjustment needed: Save data at end
-
 # 4.2 Aggregate data
 #  Group binary data to obtain binomial response. 
 #  Note: Residual deviance in binary regression model cannot be used to evaluate
