@@ -56,8 +56,6 @@ The binary response variable is defined as:
 | Test Specificity (TNR) | 93.3% |
 | Test Precision (PPV) | 93.7% |
 | Test Sensitivity (TPR) | 42.2% |
-| Test Error Rate (unweighted) | 42.5% |
-| Cost-Weighted Error (Test) | 0.545 |
 | Expected Profit per Applicant (Train / Test) | 13.48 € / 49.68 € |
 
 ---
