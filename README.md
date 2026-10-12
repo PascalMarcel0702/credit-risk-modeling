@@ -334,7 +334,7 @@ The merged form of `beruf` achieves the lowest AIC and BIC. Therefore, `beruf_me
 Consequently, the following full model (without interaction terms) is selected:
 
 $$
-\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{laufkont}_j + \beta_3\,\text{alter}_j + \beta_4\,\text{alter}{_j}^2 + \beta_5\,\text{beruf_merged}_j + \beta_6\,\text{moral}_j
+\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{laufkont}_j + \beta_3\,\text{alter}_j + \beta_4\,\text{alter}_j^2 + \beta_5\,\text{beruf_merged}_j + \beta_6\,\text{moral}_j
 $$
 
 Note: For notational compactness, categorical predictors are represented as single terms. They are implemented as indicator variables with respect to their underlying reference categories. 
@@ -471,7 +471,7 @@ These metrics coincide with the marginal exploratory data analysis: Existing sav
 In this section, diagnostics are performed to check whether the model assumptions and specifications are plausible. Moreover, observations that have an excessive influence on the regression result are detected and analyzed.
 
 ### Goodness-of-Fit
-The residual deviance measures how close the fitted means are to the observations, by comparing the mean-parametrized log-likelihood of the selected model with the one of the saturated model ($#$ parameters $=$ $#$ observations), where each observation is considered as an estimate of the mean.
+The residual deviance measures how close the fitted means are to the observations, by comparing the mean-parametrized log-likelihood of the selected model with the one of the saturated model (# parameters $=$ # observations), where each observation is considered as an estimate of the mean.
 Under the assumption that the binomial model is correctly specified and standard regularity conditions hold, the residual deviance is asymptotically $\chi_{n - p}^2$-distributed, whereby $n$ is the amount of grouped observations and $p$ is the number of parameters. Let $\mathbb{P}$ be the law of a $\chi^2$ distributed random variable, with $n - p = 654 - 9 = 645$ degrees of freedom.
 The residual deviance of the selected model is $ d = 693.85$. It holds $\mathbb{P}((d, \infty)) = 0.089 > 0.05$, thus the residual deviance test fails to reject the hypothesis of an adequate model fit at a significance level of $5 \%$.
 
@@ -588,19 +588,32 @@ The ansatz of costs minimization ignores that the bank gains a yield for each re
 
 
 #### Break-Even Point as Threshold
-
-The probability $q \in (0, 1)$ so that the expected yield is zero can be calculated as follows: 
+Let $q \in (0, 1)$ be the expected repayment probability, and let $i \in \{1: n\}$ be an index of an observation.
+Then it holds:
 
 $$
 \begin{aligned}
-\hphantom{\iff} & q \cdot \text{irm} - (1 - q) \cdot \text{lc} = 0 \\
-\iff & q \cdot \text{rir} - (1 - q) \cdot \text{lgd} = 0 \\
-\iff & q = \frac{\text{lgd}}{\text{rir} + \text{lgd}}
+\mathbb{E}[\text{Profit}_i] & =  q \cdot \text{irm}_i - (1 - q) \cdot \text{lc}_i \\
+\iff \frac{\mathbb{E}[\text{Profit}_i]}{\text{hoehe}_i} & = q \cdot \left(\text{rir}_i + \text{lgd}\right) - \text{lgd} \tag{1}
 \end{aligned}
 $$
 
-The Break-Even-Threshold $q$ is approximately $0.86$ and thus smaller than the cost-minimization threshold ($0.874$), but larger than the profit-maximization threshold ($0.842$).
+For simplicity, consider the median of `laufzeit` (in years). Then the right-hand side does not depend on the specific observation and it follows that
 
+$$
+0 = q \cdot \left(\text{rir} + \text{lgd}\right) - \text{lgd} \iff q = \frac{\text{lgd}}{\text{rir} + \text{lgd}}
+$$
+
+The Break-Even-Threshold $q$ is approximately $0.86$ and thus smaller than the cost-minimization threshold ($0.874$), but larger than the profit-maximization threshold ($0.842$).
+Note, for every observation, the linear equation $(1)$ is monotonic increasing in $q$. According to this model, the threshold $p$ corresponding to the profit maximization strategy should yield a negative gain. 
+This should be treated carefully, since the model does not take the financial distribution of the data into account: 
+
+| Duration Group | Count | Total Volume (€) | Mean Volume (€) | Total Interest Margin (€) |
+| :--- | :---: | :---: | :---: | :---: |
+| $\le 18$ Months | 377 | 771,684.00 | 2,046.91 | 53,623.94 |
+| $> 18$ Months | 322 | 1,520,648.00 | 4,722.51 | 288,770.05 |
+
+Loans with a duration greater than the median hold nearly double the total capital volume and generate more than five times the total interest margin. On the other hand, repayment-to-default odds decrease by $3\%$ per additional month of loan duration. Since long term credits contain a higher volume, potential defaults are also more costly. Therefore, the calculated threshold should be regarded as a simplified approximation rather than yielding a valid Break-Even Point.
 
 ### ROC Plot
 In the following, a ROC plot is used to visually compare the selected thresholds in face of the asymmetric cost structure.
@@ -694,23 +707,23 @@ Applying the empirical profit-maximization threshold ($0.842$) to the set ($n = 
 | *Predicted Repayment* | $6$ (FP) | $89$ (TP) | $95$ |
 | *Total Actual* | $90$ | $211$ | $301$ |
 
+Note that credit risk is asymmetric — false positives are substantially more costly than false negatives. The accuracy of the model can be further described by the following table:
+
 | Diagnostic Metric | Formula | Test Result |
 | :--- | :--- | :---: |
 | *Specificity (TNR)* | $\text{TN} / (\text{TN} + \text{FP})$ | $93.33\%$ |
 | *Precision (PPV)* | $\text{TP} / (\text{TP} + \text{FP})$ | $93.68\%$ |
 | *Sensitivity (TPR)* | $\text{TP} / (\text{TP} + \text{FN})$ | $42.18\%$ |
 
-In total, the test data contain $301$ records. Note that credit risk is asymmetric — false positives are substantially more costly than false negatives. Credit defaults were predicted correctly at a rate of $93.33\%$, leaving only $6$ false positives. On the other hand, there are $122$ false negatives. This means in $57.82\%$ ($100\% - 42.18\%$) of cases, the model causes foregone interest margins (it approves $42.18\%$ of good loans correctly). Last, when the model predicts a repayment, this is true in $93.68\%$ of cases.
+Credit defaults were predicted correctly at a rate of $93.33\%$, leaving only $6$ false positives. On the other hand, there are $122$ false negatives. This means in $57.82\%$ ($100\% - 42.18\%$) of cases, the model causes foregone interest margins (it approves $42.18\%$ of good loans correctly). Last, when the model predicts a repayment, this is true in $93.68\%$ of cases.
 
 To evaluate the economic viability, the *Profit per Applicant* is calculated by dividing the total net profit by the total number of credit applicants across the training and test sets respectively:
-
-$$\text{Profit per Applicant} = \frac{\text{Net Profit}}{n}$$
 
 | Evaluation Metric | Training Set | Test Set |
 | :--- | :---: | :---: |
 | **Profit per Applicant** | $13.47\text{ €}$ | $49.68\text{ €}$ |
 
-The Profit per Applicant sits at a positive $13.47\text{ €}$ (train) vs. $49.68\text{ €}$ (test). This discrepancy is caused by high sample variance due to low data amount ($n = 301$) of test data, but indicates out-of-sample generalization. Despite rejecting a large portion of potentially good loans (FNs), the strict filtering ensures the remaining approved portfolio is profitable and outweighs the capital losses from the few remaining defaults.
+The Profit per Applicant sits at a positive $13.47\text{ €}$ (train) vs. $49.68\text{ €}$ (test). This discrepancy is caused by high sample variance due to low data amount ($n = 301$) of test data. Despite rejecting a large portion of potentially good loans (FNs), the strict filtering ensures the remaining approved portfolio is profitable and outweighs the capital losses from the few remaining defaults.
 
 
 ### Limitations & Extensions
@@ -718,6 +731,8 @@ The Profit per Applicant sits at a positive $13.47\text{ €}$ (train) vs. $49.6
 * Use Cross Entropy as Logistic Loss function with $\lVert \cdot \rVert_1$ regularizer (Lasso) ensuring that minimizer does not converge in norm to $\infty$ and forcing sparse solutions for complexity reduction. Optimization of the loss function via proximal AdamW adaption instead of stepwise covariate selection.
 
 * Add formal overdispersion test (One-sided Lagrange Multiplier Test, Dean 1992). In case that overdispersion is present, try to model it via latent success probabilities which results in a Beta-Binomial GLM.
+
+* Add a dynamic threshold to the model: The 0.860 threshold assumes a standardized 18-month loan. However, loans $> 18$ months hold nearly double the total capital volume ($1.52$M € vs. 0$.77M$ €) and generate more than five times the total interest margin ($288$k € vs. $53$k €) compared to shorter loans. On the other hand, long-term credits are more risky, the repayment-to-default odds decrease by $3\%$ per additional month. This dynamical threshold should take both facets into account.
 
 ---
 
@@ -758,7 +773,8 @@ The Profit per Applicant sits at a positive $13.47\text{ €}$ (train) vs. $49.6
 │   │   ├── confusion_matrix_test.csv             (Test set confusion matrix counts)
 │   │   ├── final_business_metrics.csv            (Business and statistical KPIs)
 │   │   └── strategy_comparison.csv               (KPI trade-off across strategies)
-│   ├── tables/                                   
+│   ├── tables/   
+│   │   ├── duration_volume_analysis.csv          (Capital volume and margin distribution)
 │   │   ├── eda_continuous_summary.csv            (Descriptive summary of continuous predictors)
 │   │   ├── eda_empirical_logits_comparison.csv   (Raw vs. merged empirical logits)
 │   │   ├── eda_empirical_logits_summary.csv      (Empirical logits summary table)

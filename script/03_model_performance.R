@@ -108,8 +108,7 @@ optimal_threshold_table_train <- coords(
 )
 
 print(best_threshold == optimal_threshold_table_train$threshold[1]) # TRUE
-# Cross-validation confirms analytical and empirical cost minimizations converge to the identical global optimum, verifying implementation consistency.
-
+# Validation confirms analytical and empirical cost minimizations coincide, verifying implementation consistency.
 
 
 # Empirical Profit Maximization --------------------------------------------------------
@@ -140,7 +139,7 @@ max_index <- which.max(profit_values)
 max_threshold <- all_thresholds[max_index] # 0.8421814
 
 # Break - Even Point:
-# The repayment prob. q s.t. the expectation is positive can be calculated as follows:
+# The repayment prob. q s.t. the expectated profit is positive can be calculated as follows:
 # q * total_interest_rate - (1 - q) * LGD = 0 
 # \iff q = LGD / (total_interest_rate + LGD)
 
@@ -148,6 +147,39 @@ total_interest_rate <- ir * median_laufzeit / 12
 q <- LGD / (total_interest_rate + LGD)
 
 threshold_min <- q
+
+# Note: Profit_Maximization_Threshold < Break_Even_Threshold < Cost_Minimization_Threshold
+
+# It holds per observation: E[Profit_i] = q * Interest_Rate * Laufzeit_i (p.a.) * Hoehe_i - (1-q) * LGD * hoehe_i
+# The aboves formula considers a standardized duration. Thus, E[Profit_i] / hoehe_i = q(Interest_Rate * Average_Laufzeit - LGD) - LGD
+# This formula is linear with positive slope, i. e., strictly monotonic increasing. 
+# By this formula, E[Profit_i] / hoehe_i is negative when considering considering q = profit_maximization_threshold as the repayment probability.
+# Since hoehe_i > 0, it follows that per observation, E[Profit_i] < 0. Consequently, \sum_{q \le p < q_break_even} E[Profit_i(p)] < 0.
+# Thus, E[Profit(q)] < E[Profit(q_break_even)] = 0.
+
+# Does therefore follows that the profit maximization strategy does not yield any positive outcome?
+duration_volume_analysis <- data_train %>%
+  mutate(duration_group = ifelse(laufzeit <= 18, "<= 18 Months", "> 18 Months")) %>%
+  group_by(duration_group) %>%
+  summarise(
+    Count = n(),
+    Total_Volume_EUR = round(sum(hoehe), 2),
+    Mean_Volume_EUR = round(mean(hoehe), 2),
+    Total_Interest_Margin = round(sum(hoehe * (laufzeit / 12) * ir), 2)
+  )
+
+# Loans with a duration of > 18 months hold nearly double the total capital volume (approx. 1.52M vs 0.77M EUR) and generate more than five times the total interest margin (approx. 288k vs 53k EUR), which is why they are more lucrative.
+# On the other hand, repayment-to-default odds decrease by $3\%$ per additional month of loan duration making long term credits more risky. Since long term credits contain an higher volume, potential defaults are also more costly.
+# Consequently, the overall yield depends strongly on the duration which is ignored in the calculation of the break-even threshold.
+# Therefore, the calculated threshold should be regarded as a simplified approximation rather than yielding a valid Break-Even Point.
+
+# Export for README documentation
+write.csv(
+  duration_volume_analysis,
+  "output/tables/duration_volume_analysis.csv",
+  row.names = FALSE
+)
+
 
 # Thresholds:
 # threshold_min, max_threshold, best_threshold, threshold_prevalence 
