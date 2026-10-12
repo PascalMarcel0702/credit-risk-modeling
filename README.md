@@ -136,7 +136,7 @@ where $z_{0.975}$ denotes the $97.5^\text{th}$ percentile of the standard normal
 
 In the following the empirical logits for the categorical variables together with their approximate confidence intervals (CIs) are plotted to visually assess their influence on the response.
 This impact is measured by the largest logit-delta:
-Let $o_k = \frac{\pi_k}{1 - \pi_k}$ be the k$^{\text{th}}$ odds of success, which displays the ratio between repayment and default of category $k$ for a fixed covariate. Via the unbiased estimator $\hat{\pi}_k = \frac{y_k}{n_k}$ for the $\text{k}^{\text{th}}$ success probability holds $\ln(o_k) = \text{Empirical Logit}_k$. Thus, the logit-deltas for categories $k$ and $j$ are given by:
+Let $o_k = \frac{\pi_k}{1 - \pi_k}$ be the $\text{k}^{\text{th}}$ odds of success, which displays the ratio between repayment and default of category $k$ for a fixed covariate. Via the unbiased estimator $\hat{\pi}_k = \frac{y_k}{n_k}$ for the $\text{k}^{\text{th}}$ success probability holds $\ln(o_k) = \text{Empirical Logit}_k$. Thus, the logit-deltas for categories $k$ and $j$ are given by:
 
 $$
 \text{Empirical Logit}_j - \text{Empirical Logit}_k = \ln\left(\frac{o_j}{o_k}\right)
@@ -336,7 +336,7 @@ The merged form of `beruf` achieves the lowest AIC and BIC. Therefore, `beruf_me
 Consequently, the following full model (without interaction terms) is selected:
 
 $$
-\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{laufkont}_j + \beta_3\,\text{alter}_j + \beta_4\,\text{alter}_j^2 + \beta_5\,\text{beruf_merged}_j + \beta_6\,\text{moral}_j
+\text{logit}(\pi_j) = \beta_0 + \beta_1\ \text{laufzeit}_j + \beta_2\ \text{laufkont}_j + \beta_3\ \text{alter}_j + \beta_4\ \text{alter}_j^2 + \beta_5\ \text{beruf\_merged}_j + \beta_6\ \text{moral}_j
 $$
 
 Note: For notational compactness, categorical predictors are represented as single terms. They are implemented as indicator variables with respect to their underlying reference categories. 
@@ -375,7 +375,7 @@ Since the BIC is used as sensitivity check and the main objective is minimizing 
 The final main effect model is given by:
 
 $$
-\text{logit}(\pi_j) = \beta_0 + \beta_1\,\text{laufzeit}_j + \beta_2\,\text{laufkont}_j + \beta_3\,\text{moral}_j
+\text{logit}(\pi_j) = \beta_0 + \beta_1\ \text{laufzeit}_j + \beta_2\ \text{laufkont}_j + \beta_3\ \text{moral}_j
 $$
 
 
@@ -594,10 +594,8 @@ Let $q \in (0, 1)$ be the expected repayment probability, and let $i \in \{1: n\
 Then it holds:
 
 $$
-\begin{aligned}
-\mathbb{E}[\text{Profit}_i] & =  q \cdot \text{irm}_i - (1 - q) \cdot \text{lc}_i \\
-\iff \frac{\mathbb{E}[\text{Profit}_i]}{\text{hoehe}_i} & = q \cdot \left(\text{rir}_i + \text{lgd}\right) - \text{lgd}
-\end{aligned}
+\mathbb{E}[\text{Profit}_i] =  q \cdot \text{irm}_i - (1 - q) \cdot \text{lc}_i
+\iff \frac{\mathbb{E}[\text{Profit}_i]}{\text{hoehe}_i}  = q \cdot \left(\text{rir}_i + \text{lgd}\right) - \text{lgd}
 $$
 
 For simplicity, consider the median of `laufzeit` (in years). Then the right-hand side does not depend on the specific observation and it follows that
@@ -668,9 +666,9 @@ Deciles ensure a constant sample size per bin and therefore stabilize the standa
 **Figure:** Calibration curve across ten deciles with  $95 \%$ confidence intervals, smoothing curve and theoretical calibration line ($y = x$).
 The smoothing curve has a cubic polynomial shape relative to the 45-degree calibration diagonal ($y = x$). The dashed vertical lines specify the maximum allowable default risk range for the thresholds corresponding to cost minimization (green), the break-even (grey) and profit maximization strategy  (orange)
 
-- *Low default risk $(x < 0.30)$ :* The LOESS curve and deciles lie below the dashed line ($y < x$), i. e., the model systematically overestimates the default risk in this region (conservative bias).
-  - *Medium to high default risk $(0.30 \le x \le 0.65)$ :* The LOESS curve and deciles cross the dashed line and lie above it ($y > x$), i. e., the model systematically underestimates the default risk in this region (optimistic bias).
-- *Extreme default risk $(x > 0.65)$ :* The highest decile point aligns closely with the dashed line ($y = x$). The LOESS curve drops with a large CI, which is an artifact of horizontal data sparsity: The highest decile is stretched across a wide probability range, resulting in large estimated variance.
+- *Low default risk* $(x < 0.30)$ : The LOESS curve and deciles lie below the dashed line ($y < x$), i. e., the model systematically overestimates the default risk in this region (conservative bias).
+  - *Medium to high default risk* $(0.30 \le x \le 0.65)$ : The LOESS curve and deciles cross the dashed line and lie above it ($y > x$), i. e., the model systematically underestimates the default risk in this region (optimistic bias).
+- *Extreme default risk* $(x > 0.65)$ : The highest decile point aligns closely with the dashed line ($y = x$). The LOESS curve drops with a large CI, which is an artifact of horizontal data sparsity: The highest decile is stretched across a wide probability range, resulting in large estimated variance.
 
 The space along the x-axis between the conservative thresholds (grey / green) and the profit threshold (orange) represents the strategic opportunity zone. Applicants falling into this probability range are rejected under cost-minimization but approved under profit-maximization. The opportunity zone lies below the calibration diagonal ($y < x$) - i. e., as the bank shifts its policy from the green to the orange line to capture more market share, the newly accepted applicants are systematically less risky in reality than their predicted probabilities suggest.
 
