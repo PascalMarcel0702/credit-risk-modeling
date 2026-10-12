@@ -336,7 +336,7 @@ The merged form of `beruf` achieves the lowest AIC and BIC. Therefore, `beruf_me
 Consequently, the following full model (without interaction terms) is selected:
 
 $$
-\text{logit}(\pi_j) = \beta_0 + \beta_1\ \text{laufzeit}_j + \beta_2\ \text{laufkont}_j + \beta_3\ \text{alter}_j + \beta_4\ \text{alter}_j^2 + \beta_5\ \text{beruf\_merged}_j + \beta_6\ \text{moral}_j
+\text{logit}(\pi_j) = \beta_0 + \beta_1\ \text{laufzeit}_j + \beta_2\ \text{laufkont}_j + \beta_3\ \text{alter}_j + \beta_4\ \text{alter}_j^2 + \beta_5\ {\text{beruf}_\text{merged}}_j + \beta_6\ \text{moral}_j
 $$
 
 Note: For notational compactness, categorical predictors are represented as single terms. They are implemented as indicator variables with respect to their underlying reference categories. 
