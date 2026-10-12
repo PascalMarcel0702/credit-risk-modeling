@@ -103,11 +103,11 @@ This section builds the foundation for developing hypotheses for data trends by 
 
 ### Categorical Predictors
 
-For the categorical features, there exist no empty categories, but sparse ones ($< 5 \%$ of data records). Moreover, categories are listed that contain a low amount of defaults or repayments ($ < 1 \%$ of data records):
+For the categorical features, there exist no empty categories, but sparse ones ($< 5 \%$ of data records). Moreover, categories are listed that contain a low amount of defaults or repayments ($< 1 \%$ of data records):
 
 *   `moral`: level 1 contains approx. $3.8\%$
 *   `beruf`: level 1 contains approx. $1.9\%$ ($< 1\%$ defaults or repayments)
-*   `dalter`: age groups $>60$, i.e., `60-64` and `$ > 65$` contain in total approx. $5.4\%$ (both bins contain $< 1\%$ defaults or repayments)
+*   `dalter`: age groups $>60$, i.e., `60-64` and `> 65` contain in total approx. $5.4\%$ (both bins contain $< 1 \%$ defaults or repayments)
 *   `dlaufzeit`: durations $>36$ months are fragmented - the range `49-54` contains approx. $0.3\%$ and `37-42` and `>54` contain in total $2.7\%$ (bins `37-42`, `49-54` and `>54` contain $< 1\%$ defaults or repayments)
 
 #### Marginal effects 
@@ -117,7 +117,7 @@ $$
 \text{Empirical Logit}_k = \ln\left(\frac{y_k}{n_k-y_k}\right)
 $$
 
-The squared standard error of the k$^{\text{th}}$ empirical logit is defined by
+The squared standard error of the $\text{k}^{\text{th}}$ empirical logit is defined by
 
 $$
 \text{SE}(\text{Empirical Logit}_k)^2 = \frac{1}{y_k} + \frac{1}{n_k - y_k}.
@@ -136,7 +136,7 @@ where $z_{0.975}$ denotes the $97.5^\text{th}$ percentile of the standard normal
 
 In the following the empirical logits for the categorical variables together with their approximate confidence intervals (CIs) are plotted to visually assess their influence on the response.
 This impact is measured by the largest logit-delta:
-Let $o_k = \frac{\pi_k}{1 - \pi_k}$ be the k$^{\text{th}}$ odds of success, which displays the ratio between repayment and default of category $k$ for a fixed covariate. Via the unbiased estimator $\hat{\pi}_k = \frac{y_k}{n_k}$ for the k$^{\text{th}}$ success probability holds $\ln(o_k) = \text{Empirical Logit}_k$. Thus, the logit-deltas for categories $k$ and $j$ are given by:
+Let $o_k = \frac{\pi_k}{1 - \pi_k}$ be the k$^{\text{th}}$ odds of success, which displays the ratio between repayment and default of category $k$ for a fixed covariate. Via the unbiased estimator $\hat{\pi}_k = \frac{y_k}{n_k}$ for the $\text{k}^{\text{th}}$ success probability holds $\ln(o_k) = \text{Empirical Logit}_k$. Thus, the logit-deltas for categories $k$ and $j$ are given by:
 
 $$
 \text{Empirical Logit}_j - \text{Empirical Logit}_k = \ln\left(\frac{o_j}{o_k}\right)
@@ -295,9 +295,11 @@ The objective of this section is to build a model based on the previously execut
 ### Framework and Strategy
 Candidate models are compared and ranked via the Akaike Information Criterion (AIC) as the primary predictive metric, and the Bayesian Information Criterion (BIC) as a sensitivity check.
 Both criteria, AIC and BIC, balance model fit against complexity, while BIC applies a stricter penalty for the number of estimated parameters ($k$) based on the whole sample size ($n = 699$):
+
 $$
 \text{AIC} = -2\ell(\hat{\boldsymbol{\beta}}) + 2k, \quad \text{BIC} = -2\ell(\hat{\boldsymbol{\beta}}) + \ln(n)k,
 $$
+
 whereby $\ell$ denotes the binomial log-likelihood. For pre-selecting an appropriate model out of the regarded covariates, stepwise selection via the step() function is executed. The algorithm iteratively adds or drops covariates, computes the AIC / BIC for all candidate models and chooses the one with lowest AIC / BIC.
 
 Nested candidate models are compared with the Likelihood Ratio Test (LRT). The test statistic $G^2$ is equivalent to the difference in residual deviances ($\Delta D$) between the reduced and the full model:
@@ -436,7 +438,7 @@ $$
 * If $\beta_k > 0$, the ratio of repayment to default is higher than in the reference group.
 * If $\beta_k < 0$, the ratio of repayment to default is lower than in the reference group.
 
-Moreover, the approximate CIs of the odds ratios can be calculated: Let $\hat{\beta}$ be the maximum likelihood estimator and $\text{SE}(\hat{\beta})$ its standard error. Under standard regularity conditions, this estimator is asymptotically normally distributed. Consequently, its asymptotic $ 95 \%$ CI can be calculated via $\hat{\beta} \pm z_{0.975} \cdot \text{SE}(\hat{\beta})$. Applying the exponential function to the boundaries of this interval yields an asymptotic $95 \%$ CI for the odds ratios. Therefore, the CIs are very large, when the estimate $\hat{\beta}$ is greater than $1$.
+Moreover, the approximate CIs of the odds ratios can be calculated: Let $\hat{\beta}$ be the maximum likelihood estimator and $\text{SE}(\hat{\beta})$ its standard error. Under standard regularity conditions, this estimator is asymptotically normally distributed. Consequently, its asymptotic $95\%$ CI can be calculated via $\hat{\beta} \pm z_{0.975} \cdot \text{SE}(\hat{\beta})$. Applying the exponential function to the boundaries of this interval yields an asymptotic $95\%$ CI for the odds ratios. Therefore, the CIs are very large, when the estimate $\hat{\beta}$ is greater than $1$.
 
 The estimated coefficients, the odds ratios as well as the asymptotic CIs are provided in the following table:
 
@@ -472,11 +474,11 @@ In this section, diagnostics are performed to check whether the model assumption
 
 ### Goodness-of-Fit
 The residual deviance measures how close the fitted means are to the observations, by comparing the mean-parametrized log-likelihood of the selected model with the one of the saturated model (# parameters $=$ # observations), where each observation is considered as an estimate of the mean.
-Under the assumption that the binomial model is correctly specified and standard regularity conditions hold, the residual deviance is asymptotically $\chi_{n - p}^2$-distributed, whereby $n$ is the amount of grouped observations and $p$ is the number of parameters. Let $\mathbb{P}$ be the law of a $\chi^2$ distributed random variable, with $n - p = 654 - 9 = 645$ degrees of freedom.
-The residual deviance of the selected model is $ d = 693.85$. It holds $\mathbb{P}((d, \infty)) = 0.089 > 0.05$, thus the residual deviance test fails to reject the hypothesis of an adequate model fit at a significance level of $5 \%$.
+Under the assumption that the binomial model is correctly specified and standard regularity conditions hold, the residual deviance is asymptotically $\chi_{n - p}^2$ -distributed, whereby $n$ is the amount of grouped observations and $p$ is the number of parameters. Let $\mathbb{P}$ be the law of a $\chi^2$ distributed random variable, with $n - p = 654 - 9 = 645$ degrees of freedom.
+The residual deviance of the selected model is $d = 693.85$. It holds $\mathbb{P}((d, \infty)) = 0.089 > 0.05$, thus the residual deviance test fails to reject the hypothesis of an adequate model fit at a significance level of $5\%$.
 
-The Pearson-$\chi^2$-statistic $X^2$ is defined as the sum of squared Pearson residuals, where each summand represents the ratio of the squared empirical deviation to the theoretical binomial variance.
-Under the same assumptions as above, it is $\chi^2$ distributed with $n - p = 645$ degrees of freedom. The Pearson statistic of this model is $x^2 = 647.12$. It holds $\mathbb{P}((x^2, \infty)) = 0.469 >> 0.05$, thus the Pearson-$\chi^2$-test fails to reject the hypothesis of an adequate model fit at level of $5 \%$. 
+The Pearson- $\chi^2$ -statistic $X^2$ is defined as the sum of squared Pearson residuals, where each summand represents the ratio of the squared empirical deviation to the theoretical binomial variance.
+Under the same assumptions as above, it is $\chi^2$ distributed with $n - p = 645$ degrees of freedom. The Pearson statistic of this model is $x^2 = 647.12$. It holds $\mathbb{P}((x^2, \infty)) = 0.469 >> 0.05$, thus the Pearson- $\chi^2$ -test fails to reject the hypothesis of an adequate model fit at level of $5 \%$. 
 
 Note: Failure to reject the null hypothesis does not prove that the model is correctly specified.
 
@@ -524,7 +526,7 @@ The top outlier represents a grouped observation of two borrowers who repaid the
 
 The discrepancy between low predicted probability of $32.54 \%$ and the empirical success is responsible for the large Cook's distance.
 
-The change of the following coefficients $\hat{\beta}$ is above the screening threshold of $\frac{2}{\sqrt{n}} = 0.078 $ standard errors (SEs):
+The change of the following coefficients $\hat{\beta}$ is above the screening threshold of $\frac{2}{\sqrt{n}} = 0.078$ standard errors (SEs):
 
 | Coefficient | Variable Category | DFBETAS Shift in SEs |
 |---|---|---|
@@ -579,7 +581,7 @@ The following table summarizes these definitions:
 #### Empirical Cost Minimization
 
 In the following, the threshold is calculated that minimizes the costs for the bank under consideration of the assumed cost ratio. For this cost sensitive threshold optimization, the function `pROC::roc` is used: First, the method `thresholds` yields an exhaustive list of all possible thresholds by extracting the unique sorted predicted probabilities of the model.
-Then, for each of these thresholds the empirical costs are calculated as follows: Each false negative predictor counts one unit, while each false positive predictor counts `cr` $ = 7$ times. Note that the penalty of $1$ for each false negative prediction serves as a regularizer: Without a penalty, the best strategy would be to reject every loan. Then, the threshold is selected causing minimal costs, which is approximately $0.87$. This means, if the model predicts a probability less than $0.87$, the bank rejects the loan.  
+Then, for each of these thresholds the empirical costs are calculated as follows: Each false negative predictor counts one unit, while each false positive predictor counts `cr` $= 7$ times. Note that the penalty of $1$ for each false negative prediction serves as a regularizer: Without a penalty, the best strategy would be to reject every loan. Then, the threshold is selected causing minimal costs, which is approximately $0.87$. This means, if the model predicts a probability less than $0.87$, the bank rejects the loan.  
 
 
 #### Empirical Profit Maximization
@@ -594,7 +596,7 @@ Then it holds:
 $$
 \begin{aligned}
 \mathbb{E}[\text{Profit}_i] & =  q \cdot \text{irm}_i - (1 - q) \cdot \text{lc}_i \\
-\iff \frac{\mathbb{E}[\text{Profit}_i]}{\text{hoehe}_i} & = q \cdot \left(\text{rir}_i + \text{lgd}\right) - \text{lgd} \tag{1}
+\iff \frac{\mathbb{E}[\text{Profit}_i]}{\text{hoehe}_i} & = q \cdot \left(\text{rir}_i + \text{lgd}\right) - \text{lgd}
 \end{aligned}
 $$
 
@@ -605,7 +607,7 @@ $$
 $$
 
 The Break-Even-Threshold $q$ is approximately $0.86$ and thus smaller than the cost-minimization threshold ($0.874$), but larger than the profit-maximization threshold ($0.842$).
-Note, for every observation, the linear equation $(1)$ is monotonic increasing in $q$. According to this model, the threshold $p$ corresponding to the profit maximization strategy should yield a negative gain. 
+Note, for every observation, the linear equation of the profit is monotonic increasing in $q$. According to this model, the threshold $p$ corresponding to the profit maximization strategy should yield a negative gain. 
 This should be treated carefully, since the model does not take the financial distribution of the data into account: 
 
 | Duration Group | Count | Total Volume (€) | Mean Volume (€) | Total Interest Margin (€) |
@@ -666,9 +668,9 @@ Deciles ensure a constant sample size per bin and therefore stabilize the standa
 **Figure:** Calibration curve across ten deciles with  $95 \%$ confidence intervals, smoothing curve and theoretical calibration line ($y = x$).
 The smoothing curve has a cubic polynomial shape relative to the 45-degree calibration diagonal ($y = x$). The dashed vertical lines specify the maximum allowable default risk range for the thresholds corresponding to cost minimization (green), the break-even (grey) and profit maximization strategy  (orange)
 
-- *Low default risk ($x < 0.30$):* The LOESS curve and deciles lie below the dashed line ($y < x$), i. e., the model systematically overestimates the default risk in this region (conservative bias).
-- *Medium to high default risk ($0.30 \le x \le 0.65$):* The LOESS curve and deciles cross the dashed line and lie above it ($y > x$), i. e., the model systematically underestimates the default risk in this region (optimistic bias).
-- *Extreme default risk ($x > 0.65$):* The highest decile point aligns closely with the dashed line ($y = x$). The LOESS curve drops with a large CI, which is an artifact of horizontal data sparsity: The highest decile is stretched across a wide probability range, resulting in large estimated variance.
+- *Low default risk $(x < 0.30)$ :* The LOESS curve and deciles lie below the dashed line ($y < x$), i. e., the model systematically overestimates the default risk in this region (conservative bias).
+  - *Medium to high default risk $(0.30 \le x \le 0.65)$ :* The LOESS curve and deciles cross the dashed line and lie above it ($y > x$), i. e., the model systematically underestimates the default risk in this region (optimistic bias).
+- *Extreme default risk $(x > 0.65)$ :* The highest decile point aligns closely with the dashed line ($y = x$). The LOESS curve drops with a large CI, which is an artifact of horizontal data sparsity: The highest decile is stretched across a wide probability range, resulting in large estimated variance.
 
 The space along the x-axis between the conservative thresholds (grey / green) and the profit threshold (orange) represents the strategic opportunity zone. Applicants falling into this probability range are rejected under cost-minimization but approved under profit-maximization. The opportunity zone lies below the calibration diagonal ($y < x$) - i. e., as the bank shifts its policy from the green to the orange line to capture more market share, the newly accepted applicants are systematically less risky in reality than their predicted probabilities suggest.
 
@@ -732,7 +734,7 @@ The Profit per Applicant sits at a positive $13.47\text{ €}$ (train) vs. $49.6
 
 * Add formal overdispersion test (One-sided Lagrange Multiplier Test, Dean 1992). In case that overdispersion is present, try to model it via latent success probabilities which results in a Beta-Binomial GLM.
 
-* Add a dynamic threshold to the model: The 0.860 threshold assumes a standardized 18-month loan. However, loans $> 18$ months hold nearly double the total capital volume ($1.52$M € vs. 0$.77M$ €) and generate more than five times the total interest margin ($288$k € vs. $53$k €) compared to shorter loans. On the other hand, long-term credits are more risky, the repayment-to-default odds decrease by $3\%$ per additional month. This dynamical threshold should take both facets into account.
+* Add a dynamic threshold to the model: The 0.860 threshold assumes a standardized 18-month loan. However, loans $> 18$ months hold nearly double the total capital volume ( $1.52$ M € vs. $0.77$ M€) and generate more than five times the total interest margin ( $288$ k € vs. $53$ k €) compared to shorter loans. On the other hand, long-term credits are more risky, the repayment-to-default odds decrease by $3\%$ per additional month. This dynamical threshold should take both facets into account.
 
 ---
 
