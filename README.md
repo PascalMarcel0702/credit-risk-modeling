@@ -20,7 +20,7 @@ The following predictors are considered:
 The continuous variables age and credit duration (`alter` and `laufzeit`) occur binned in the data documentation.
 
 
-The observations are split into 699 training data, with 654 unique covariate profiles, and 301 test data. For the training data, categorical variables show differences in category frequencies:
+The observations are split into 699 training observations, with 654 unique covariate profiles, and 301 test observations. For the training data, categorical variables show differences in category frequencies:
 
 
 | Variable | Category 0 | Category 1 | Category 2 | Category 3 | Category 4 |
@@ -158,7 +158,7 @@ Detailed tabular summaries including bin sizes and approximate CIs are exported 
 **Figure:** Logit extremes yielding a delta of $2.23$ in both plots (ranging from $1.87$ in bin $\le 6$ to $-0.36$ in bin $43-48$). For `dlaufzeit`, due to data sparsity in range of $>36$ months, there are structural breaks in the downward trend (e.g., spike to $2.08$ at $37-42$ months bin). Maximum CI width in category $49-54$ is approximately $5.54$ (L: $-2.77$, U: $2.77$, $n = 2$) and absorbs the CIs of bins $43-48$ and $> 54$. These categories exhibit similar empirical logits with overlapping CIs and thus an analogous effect on the response, which is why the categories $> 36$ are merged. The plot for `dlaufzeit_merged` shows in the right tail (aggregation of the four sparse categories, $n = 60$, empirical logit $= 0$) a stabilization in the CI width of $1.02$ (L: $-0.51$, U: $0.51$) and overall trend.
 
 
-Both plots show an overall downward trend indicating that in total, the default risk raises with higher loan duration. 
+Both plots show an overall downward trend indicating that in total, the default risk increases with higher loan duration. 
 
 Note: The empirical logit of bin $19-24$ does not provide a structural break in both plots, since its CI is nearly absorbed by the CIs of its neighboring categories. In particular for `dlaufzeit`, the bins $37-42$, $49-54$ and $>54$ are sparse, each consisting of $<1.5\%$ of the data records resulting in pairwise absorbing / highly overlapping CIs and thus they do not provide a structural break as well.
 
@@ -578,15 +578,15 @@ The following table summarizes these definitions:
 | `cr` | Cost ratio | `lc` $/$ `irm` | $\approx 7$ |
 
 
-#### Empirical Cost Minimization
+#### Empirical Cost-Minimization
 
 In the following, the threshold is calculated that minimizes the costs for the bank under consideration of the assumed cost ratio. For this cost sensitive threshold optimization, the function `pROC::roc` is used: First, the method `thresholds` yields an exhaustive list of all possible thresholds by extracting the unique sorted predicted probabilities of the model.
 Then, for each of these thresholds the empirical costs are calculated as follows: Each false negative predictor counts one unit, while each false positive predictor counts `cr` $= 7$ times. Note that the penalty of $1$ for each false negative prediction serves as a regularizer: Without a penalty, the best strategy would be to reject every loan. Then, the threshold is selected causing minimal costs, which is approximately $0.87$. This means, if the model predicts a probability less than $0.87$, the bank rejects the loan.  
 
 
-#### Empirical Profit Maximization
+#### Empirical Profit-Maximization
 
-The ansatz of costs minimization ignores that the bank gains a yield for each repaied loan. Analogously to the empirical costs, the empirical profit is calculated for each possible threshold: If the model predicts a repayment correctly, the bank gains the interest rate margin `irm`, if the predictor is false positive, the bank pays the loss of capital `lc`. This method does not use a regularizer. The calculated threshold is approximately $0.84$. In particular, the bank approves more loans with this strategy than with the one of empirical cost minimization.
+The ansatz of costs minimization ignores that the bank gains a yield for each repaied loan. Analogously to the empirical costs, the empirical profit is calculated for each possible threshold: If the model predicts a repayment correctly, the bank gains the interest rate margin `irm`, if the predictor is false positive, the bank pays the loss of capital `lc`. This method does not use a regularizer. The calculated threshold is approximately $0.84$. In particular, the bank approves more loans with this strategy than with the one of empirical cost-minimization.
 
 
 #### Break-Even Point as Threshold
@@ -605,7 +605,7 @@ $$
 $$
 
 The Break-Even-Threshold $q$ is approximately $0.86$ and thus smaller than the cost-minimization threshold ($0.874$), but larger than the profit-maximization threshold ($0.842$).
-Note, for every observation, the linear equation of the normed profit is monotonic increasing in $q$. According to this model, the threshold $p$ corresponding to the profit maximization strategy should yield a negative gain. 
+Note, for every observation, the linear equation of the normed profit is monotonic increasing in $q$. According to this model, the threshold corresponding to the profit-maximization strategy should yield a negative gain. 
 This should be treated carefully, since the model does not take the financial distribution of the data into account: 
 
 | Duration Group | Count | Total Volume (€) | Mean Volume (€) | Total Interest Margin (€) |
@@ -613,7 +613,7 @@ This should be treated carefully, since the model does not take the financial di
 | $\le 18$ Months | 377 | 771,684.00 | 2,046.91 | 53,623.94 |
 | $> 18$ Months | 322 | 1,520,648.00 | 4,722.51 | 288,770.05 |
 
-Loans with a duration greater than the median hold nearly double the total capital volume and generate more than five times the total interest margin. On the other hand, repayment-to-default odds decrease by $3\%$ per additional month of loan duration. Since long term credits contain a higher volume, potential defaults are also more costly. Therefore, the calculated threshold should be regarded as a simplified approximation rather than yielding a valid Break-Even Point.
+Loans with a duration greater than the median hold nearly double the total capital volume and generate more than five times the total interest margin. On the other hand, repayment-to-default odds decrease by $3\%$ per additional month of loan duration. Since long-term credits contain a higher volume, potential defaults are also more costly. Therefore, the calculated threshold should be regarded as a simplified approximation rather than yielding a valid Break-Even Point.
 
 ### ROC Plot
 In the following, a ROC plot is used to visually compare the selected thresholds in face of the asymmetric cost structure.
@@ -622,9 +622,9 @@ In the following, a ROC plot is used to visually compare the selected thresholds
   <img src="output/figures/roc_curve.png" width="55%" alt="ROC Curve Plot">
 </p>
 
-**Figure:**  Training and test ROC curves remain well above the random-guess baseline, indicating a general capacity to rank credit risk profiles across unseen data. The higher test AUC ($0.809$) relative to the train AUC ($0.751$) may be a statistical artifact driven by sampling variance in the test split. The circles represent the threshold gained by cost minimization, the diamonds correspond to the break-even threshold and the triangles to the one of the profit maximization. The training and test markers are closely aligned, indicating a robust generalization to the population. All markers have a low false positive rate, which reflects the objective of limiting the high costs of a default. 
+**Figure:**  Training and test ROC curves remain well above the random-guess baseline, indicating a general capacity to rank credit risk profiles across unseen data. The higher test AUC ($0.809$) relative to the train AUC ($0.751$) may be a statistical artifact driven by sampling variance in the test split. The circles represent the threshold gained by cost-minimization, the diamonds correspond to the break-even threshold and the triangles to the one of the profit-maximization. The training and test markers are closely aligned, indicating a robust generalization to the population. All markers have a low false positive rate, which reflects the objective of limiting the high costs of a default. 
 
-In a neighborhood of the points corresponding to the cost minimization and break-even threshold, the slope of the ROC curve is steep in both directions. Thus, taking risk into account by lowering these threshold yields disproportionately more gains than defaults. The data point corresponding to the threshold calculated by empirical profit maximization sits on a local saddle point, thus decreasing the threshold causes more additional debts than repayments, while increasing this threshold causes proportionately more foregone interest rates than debts.
+In a neighborhood of the points corresponding to the cost-minimization and break-even threshold, the slope of the ROC curve is steep in both directions. Thus, taking risk into account by lowering these threshold yields disproportionately more gains than defaults. The data point corresponding to the threshold calculated by empirical profit-maximization sits on a local saddle point, thus decreasing the threshold causes more additional debts than repayments, while increasing this threshold causes proportionately more foregone interest rates than debts.
 
 
 
@@ -664,7 +664,7 @@ Deciles ensure a constant sample size per bin and therefore stabilize the standa
 </p>
 
 **Figure:** Calibration curve across ten deciles with  $95 \%$ confidence intervals, smoothing curve and theoretical calibration line ($y = x$).
-The smoothing curve has a cubic polynomial shape relative to the 45-degree calibration diagonal ($y = x$). The dashed vertical lines specify the maximum allowable default risk range for the thresholds corresponding to cost minimization (green), the break-even (grey) and profit maximization strategy  (orange)
+The smoothing curve has a cubic polynomial shape relative to the 45-degree calibration diagonal ($y = x$). The dashed vertical lines specify the maximum allowable default risk range for the thresholds corresponding to cost-minimization (green), the break-even (grey) and profit-maximization strategy  (orange)
 
 - *Low default risk* $(x < 0.30)$ : The LOESS curve and deciles lie below the dashed line ($y < x$), i. e., the model systematically overestimates the default risk in this region (conservative bias).
   - *Medium to high default risk* $(0.30 \le x \le 0.65)$ : The LOESS curve and deciles cross the dashed line and lie above it ($y > x$), i. e., the model systematically underestimates the default risk in this region (optimistic bias).
@@ -679,21 +679,21 @@ Both plots show that for low-risk customers (Class D / Deciles with $x < 0.30$),
 Moreover, both plots confirm that the absolute highest risk tier (Class G / $10^{\text{th}}$ Decile) is well-calibrated, since the corresponding point sits on the calibration line.
 But, the decile plot reveals a systematic underestimation of risk in the medium-to-high range ($0.30 \le x \le 0.65$). The largest Class F ($n = 149$) aggregates this entire region into a single point, averaging out the variance and making it appear perfectly calibrated.
 
-### Decision of Strategy: Cost Minimization vs. Profit Maximization
+### Decision of Strategy: Cost-Minimization vs. Profit-Maximization
 To determine the optimal decision threshold, operational and financial KPIs are evaluated across candidate strategies under empirical lending constraints ($\text{LGD} = 60\%$, interest margin $= 6.5\%$).
 
 | Strategy | Decision Threshold | Approval Rate | Defaults | Net Profit | Profit Margin |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Cost Minimization** | 0.874 | 23.2% | 12 | 9,179.97 | 2.42% |
-| **Profit Maximization** | 0.842 | 32.3% | 21 | 9,420.07 | 1.64% |
+| **Cost-Minimization** | 0.874 | 23.2% | 12 | 9,179.97 | 2.42% |
+| **Profit-Maximization** | 0.842 | 32.3% | 21 | 9,420.07 | 1.64% |
 | **Break-Even** | 0.860 | 26.6% | 16 | 5,086.49 | 1.09% |
 | **Market Share (Growth)** | 0.700 | 57.7% | 68 | -45,194.17 | -4.20% |
 
-- **Absolute- and relative return:** While Cost Minimization yields a higher relative profit margin ($2.42\%$ vs. $1.64\%$), Profit Maximization generates the highest absolute Net Profit ($9.420,07$ €). It leverages the risk trade-off by accepting a moderate increase in false positives ($21$ vs. $12$) to significantly expand the approval rate ($32.3\%$ vs. $23.2\%$).
+- **Absolute- and relative return:** While cost-minimization yields a higher relative profit margin ($2.42\%$ vs. $1.64\%$), profit-maximization generates the highest absolute Net Profit ($9.420,07$ €). It leverages the risk trade-off by accepting a moderate increase in false positives ($21$ vs. $12$) to significantly expand the approval rate ($32.3\%$ vs. $23.2\%$).
 - **Risk Constraints:** Forcing a Market Share strategy results in severe financial losses ($-45.194,17$ €), proving that aggressive volume growth is economically unavailable under the current $60\%$ LGD and $6.5\%$ interest rate assumptions.
 - **Synergy with Model Calibration:** As established in the decile calibration plot, the profit threshold ($0.842$) safely resides within the opportunity zone (conservative bias). The marginally higher risk taken to expand the portfolio is buffered since these newly accepted applicants are actually safer than the model predicts.
 
-**Decision:** Profit maximization represents the optimal operating point, maximizing total return while remaining fully protected by the conservative bias of the model in the decision region.
+**Decision:** Profit-maximization represents the optimal operating point, maximizing total return while remaining fully protected by the conservative bias of the model in the decision region.
 
 
 
@@ -732,7 +732,7 @@ The Profit per Applicant sits at a positive $13.47\text{ €}$ (train) vs. $49.6
 
 * Add formal overdispersion test (One-sided Lagrange Multiplier Test, Dean 1992). In case that overdispersion is present, try to model it via latent success probabilities which results in a Beta-Binomial GLM.
 
-* Add a dynamic threshold to the model: The 0.860 threshold assumes a standardized 18-month loan. However, loans $> 18$ months hold nearly double the total capital volume ( $1.52$ M € vs. $0.77$ M€) and generate more than five times the total interest margin ( $288$ k € vs. $53$ k €) compared to shorter loans. On the other hand, long-term credits are more risky, the repayment-to-default odds decrease by $3\%$ per additional month. This dynamical threshold should take both facets into account.
+* Add a dynamic threshold to the model: The 0.860 threshold assumes a standardized 18-month loan. However, loans $> 18$ months hold nearly double the total capital volume ( $1.52$ M € vs. $0.77$ M€) and generate more than five times the total interest margin ( $288$ k € vs. $53$ k €) compared to shorter loans. On the other hand, long-term credits are more risky, the repayment-to-default odds decrease by $3\%$ per additional month. This dynamic threshold should take both facets into account.
 
 ---
 
