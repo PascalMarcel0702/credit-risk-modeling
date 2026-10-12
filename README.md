@@ -605,7 +605,7 @@ $$
 $$
 
 The Break-Even-Threshold $q$ is approximately $0.86$ and thus smaller than the cost-minimization threshold ($0.874$), but larger than the profit-maximization threshold ($0.842$).
-Note, for every observation, the linear equation of the profit is monotonic increasing in $q$. According to this model, the threshold $p$ corresponding to the profit maximization strategy should yield a negative gain. 
+Note, for every observation, the linear equation of the normed profit is monotonic increasing in $q$. According to this model, the threshold $p$ corresponding to the profit maximization strategy should yield a negative gain. 
 This should be treated carefully, since the model does not take the financial distribution of the data into account: 
 
 | Duration Group | Count | Total Volume (€) | Mean Volume (€) | Total Interest Margin (€) |
